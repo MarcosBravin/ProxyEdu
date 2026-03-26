@@ -273,6 +273,31 @@ Para uso em ambientes produtivos, suporte, customizações ou implantação assi
 
 ---
 
+Licença
+
+Este projeto está disponível sob a ProxyEdu Community License (Open Core).
+
+Uso permitido para fins:
+
+educacionais
+pessoais
+internos
+
+Uso comercial requer autorização.
+
+Comercial
+
+Para:
+
+implantação em escolas
+suporte
+customizações
+licenciamento comercial
+
+Entre em contato.
+
+---
+
 ## Contato
 
 Caso tenha interesse em utilizar o ProxyEdu em ambiente real ou precise de suporte, abra uma issue ou entre em contato.
