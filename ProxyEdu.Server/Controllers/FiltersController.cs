@@ -23,7 +23,11 @@ public class FiltersController : ControllerBase
     [HttpPost]
     public IActionResult Create([FromBody] FilterRule rule)
     {
+        if (string.IsNullOrWhiteSpace(rule.Pattern))
+            return BadRequest("Padrao do filtro e obrigatorio.");
+
         rule.Id = Guid.NewGuid().ToString();
+        rule.Pattern = rule.Pattern.Trim();
         rule.CreatedAt = DateTime.UtcNow;
         return Ok(_filter.AddRule(rule));
     }
@@ -31,7 +35,13 @@ public class FiltersController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult Update(string id, [FromBody] FilterRule rule)
     {
+        if (string.IsNullOrWhiteSpace(rule.Pattern))
+            return BadRequest("Padrao do filtro e obrigatorio.");
+        if (_db.FilterRules.FindById(id) is null)
+            return NotFound();
+
         rule.Id = id;
+        rule.Pattern = rule.Pattern.Trim();
         _filter.UpdateRule(rule);
         return Ok(rule);
     }
@@ -39,13 +49,14 @@ public class FiltersController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete(string id)
     {
-        _filter.DeleteRule(id);
+        if (!_filter.DeleteRule(id)) return NotFound();
         return Ok(new { success = true });
     }
 
     [HttpPost("{id}/toggle")]
     public IActionResult Toggle(string id)
     {
+        if (_db.FilterRules.FindById(id) is null) return NotFound();
         _filter.ToggleRule(id);
         return Ok(new { success = true });
     }

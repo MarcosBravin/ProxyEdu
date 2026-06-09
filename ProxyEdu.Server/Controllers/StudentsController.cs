@@ -33,8 +33,10 @@ public class StudentsController : ControllerBase
     {
         var student = _db.Students.FindById(id);
         if (student == null) return NotFound();
+        if (string.IsNullOrWhiteSpace(updated.Name))
+            return BadRequest("Nome do aluno e obrigatorio.");
         student.Name = updated.Name;
-        student.Group = updated.Group;
+        student.Group = string.IsNullOrWhiteSpace(updated.Group) ? "default" : updated.Group;
         _db.Students.Update(student);
         return Ok(student);
     }
@@ -115,7 +117,7 @@ public class StudentsController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete(string id)
     {
-        _db.Students.Delete(id);
+        if (!_db.Students.Delete(id)) return NotFound();
         return Ok(new { success = true });
     }
 }

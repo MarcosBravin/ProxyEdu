@@ -20,6 +20,9 @@ public class LogsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
         var query = _db.Logs.FindAll().AsQueryable();
         if (!string.IsNullOrEmpty(studentId))
             query = query.Where(l => l.StudentId == studentId);
@@ -63,6 +66,11 @@ public class SettingsController : ControllerBase
     [HttpPut]
     public IActionResult Update([FromBody] ProxySettings settings)
     {
+        if (settings.ProxyPort is < 1 or > 65535 || settings.DashboardPort is < 1 or > 65535)
+            return BadRequest("Portas devem estar entre 1 e 65535.");
+        if (settings.MaxLogRetentionDays is < 1 or > 3650)
+            return BadRequest("Retencao de logs deve estar entre 1 e 3650 dias.");
+
         _db.SaveSettings(settings);
         return Ok(settings);
     }
@@ -82,7 +90,13 @@ public class GroupsController : ControllerBase
     [HttpPost]
     public IActionResult Create([FromBody] StudentGroup group)
     {
+        if (string.IsNullOrWhiteSpace(group.Name))
+            return BadRequest("Nome do grupo e obrigatorio.");
+        if (_db.Groups.Exists(g => g.Name == group.Name.Trim()))
+            return BadRequest("Grupo ja existe.");
+
         group.Id = Guid.NewGuid().ToString();
+        group.Name = group.Name.Trim();
         _db.Groups.Insert(group);
         return Ok(group);
     }
@@ -90,7 +104,7 @@ public class GroupsController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete(string id)
     {
-        _db.Groups.Delete(id);
+        if (!_db.Groups.Delete(id)) return NotFound();
         return Ok(new { success = true });
     }
 }
