@@ -1,0 +1,42 @@
+# Build outputs
+bin/
+obj/
+publish/
+artifacts/
+
+# Visual Studio / Rider / VS Code local state
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.cache
+*.bak
+*.swp
+*.pid
+
+# Environment and local configuration
+.env
+.env.*
+appsettings.Production.json
+appsettings.Local.json
+
+# Certificates and private keys
+*.pfx
+*.p12
+*.cer
+*.crt
+*.key
+*.pem
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
