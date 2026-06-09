@@ -93,7 +93,6 @@ public class ProxyServerService : BackgroundService
         // Explicit per-student bypass: ignore blacklist/whitelist filters
         if (_studentManager.IsStudentBypassFilters(clientIp))
         {
-            _studentManager.UpdateActivity(clientIp, url, false, 0);
             LogAccess(clientIp, url, method, false, "Liberacao total do aluno");
             return;
         }
@@ -107,7 +106,7 @@ public class ProxyServerService : BackgroundService
             return;
         }
 
-        _studentManager.UpdateActivity(clientIp, url, false, 0);
+        // Allowed requests are counted in OnBeforeResponse, where response size is available.
     }
 
     private async Task OnBeforeResponse(object sender, SessionEventArgs e)

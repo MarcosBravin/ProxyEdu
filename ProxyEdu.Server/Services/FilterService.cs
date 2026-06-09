@@ -180,7 +180,8 @@ public class FilterService
         try
         {
             var uri = new Uri(url.StartsWith("http") ? url : "http://" + url);
-            return uri.Host.TrimStart("www.".ToCharArray());
+            var host = uri.Host;
+            return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
         }
         catch
         {
