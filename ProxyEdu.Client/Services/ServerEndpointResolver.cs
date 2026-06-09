@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -66,7 +67,18 @@ public class ServerEndpointResolver
                 throw new InvalidOperationException("Server:Ip vazio e auto descoberta desabilitada.");
             }
 
+            var configuredFallback = await TryConfiguredFallbacksAsync(
+                defaultDashboardPort,
+                defaultProxyPort,
+                cancellationToken);
+            if (configuredFallback is not null)
+            {
+                _cachedEndpoint = configuredFallback;
+                return _cachedEndpoint;
+            }
+
             var discovered = await DiscoverAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
+            discovered ??= await TryLocalServerAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
             if (discovered is null)
             {
                 throw new InvalidOperationException("Nenhum servidor ProxyEdu encontrado na rede local.");
@@ -94,14 +106,17 @@ public class ServerEndpointResolver
         var discoveryPort = _config.GetValue<int?>("Server:DiscoveryPort") ?? 50505;
         using var udp = new UdpClient(0) { EnableBroadcast = true };
         var probe = Encoding.UTF8.GetBytes(DiscoveryProbe);
-        var broadcastEndPoint = new IPEndPoint(IPAddress.Broadcast, discoveryPort);
+        var targets = BuildDiscoveryTargets(discoveryPort);
 
         for (var attempt = 1; attempt <= 3; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                await udp.SendAsync(probe, probe.Length, broadcastEndPoint);
+                foreach (var target in targets)
+                {
+                    await udp.SendAsync(probe, probe.Length, target);
+                }
 
                 var receiveTask = udp.ReceiveAsync();
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
@@ -165,5 +180,116 @@ public class ServerEndpointResolver
         }
 
         return null;
+    }
+
+    private async Task<ServerEndpoint?> TryConfiguredFallbacksAsync(
+        int defaultDashboardPort,
+        int defaultProxyPort,
+        CancellationToken cancellationToken)
+    {
+        var fallbackIps = (_config["Server:FallbackIps"] ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var ip in fallbackIps)
+        {
+            var endpoint = await TryHttpEndpointAsync(ip, defaultDashboardPort, defaultProxyPort, cancellationToken);
+            if (endpoint is not null)
+            {
+                return endpoint;
+            }
+        }
+
+        return null;
+    }
+
+    private Task<ServerEndpoint?> TryLocalServerAsync(
+        int defaultDashboardPort,
+        int defaultProxyPort,
+        CancellationToken cancellationToken)
+    {
+        return TryHttpEndpointAsync("127.0.0.1", defaultDashboardPort, defaultProxyPort, cancellationToken);
+    }
+
+    private async Task<ServerEndpoint?> TryHttpEndpointAsync(
+        string ip,
+        int defaultDashboardPort,
+        int defaultProxyPort,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var handler = new HttpClientHandler { UseProxy = false };
+            using var http = new HttpClient(handler)
+            {
+                Timeout = TimeSpan.FromMilliseconds(800)
+            };
+
+            using var response = await http.GetAsync($"http://{ip}:{defaultDashboardPort}/", cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            _logger.LogInformation("Servidor ProxyEdu localizado por fallback HTTP em {Ip}:{Port}", ip, defaultDashboardPort);
+            return new ServerEndpoint
+            {
+                Ip = ip,
+                DashboardPort = defaultDashboardPort,
+                ProxyPort = defaultProxyPort,
+                EnableHttpsInspection = _config.GetValue<bool?>("Server:EnableHttpsInspection") ?? false
+            };
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
+    private static IReadOnlyList<IPEndPoint> BuildDiscoveryTargets(int discoveryPort)
+    {
+        var targets = new Dictionary<string, IPEndPoint>(StringComparer.OrdinalIgnoreCase)
+        {
+            [IPAddress.Broadcast.ToString()] = new(IPAddress.Broadcast, discoveryPort),
+            [IPAddress.Loopback.ToString()] = new(IPAddress.Loopback, discoveryPort)
+        };
+
+        foreach (var address in GetInterfaceBroadcastAddresses())
+        {
+            targets.TryAdd(address.ToString(), new IPEndPoint(address, discoveryPort));
+        }
+
+        return targets.Values.ToList();
+    }
+
+    private static IEnumerable<IPAddress> GetInterfaceBroadcastAddresses()
+    {
+        foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (networkInterface.OperationalStatus != OperationalStatus.Up ||
+                networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+            {
+                continue;
+            }
+
+            foreach (var unicast in networkInterface.GetIPProperties().UnicastAddresses)
+            {
+                if (unicast.Address.AddressFamily != AddressFamily.InterNetwork ||
+                    unicast.IPv4Mask is null)
+                {
+                    continue;
+                }
+
+                var ipBytes = unicast.Address.GetAddressBytes();
+                var maskBytes = unicast.IPv4Mask.GetAddressBytes();
+                var broadcastBytes = new byte[ipBytes.Length];
+
+                for (var i = 0; i < ipBytes.Length; i++)
+                {
+                    broadcastBytes[i] = (byte)(ipBytes[i] | ~maskBytes[i]);
+                }
+
+                yield return new IPAddress(broadcastBytes);
+            }
+        }
     }
 }
