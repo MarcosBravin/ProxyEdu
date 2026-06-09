@@ -175,11 +175,12 @@ public class ProxyClientService : BackgroundService
             }
 
             _logger.LogWarning(
-                "Bloqueio HTTPS recebido: host={Host} porta={Port} motivo={Reason} politica={Policy}",
+                "Bloqueio HTTPS recebido: host={Host} porta={Port} motivo={Reason} politica={Policy} destino={Destination}",
                 notification.Host,
                 notification.Port,
                 notification.Reason,
-                notification.Policy);
+                notification.Policy,
+                notification.BlockDestination);
 
             if ((DateTime.UtcNow - _lastHttpsBlockNotificationAt) < TimeSpan.FromSeconds(10))
             {
@@ -187,14 +188,17 @@ public class ProxyClientService : BackgroundService
             }
 
             var endpoint = _currentEndpoint;
-            if (endpoint is null || string.IsNullOrWhiteSpace(notification.BlockedPagePath))
+            if (endpoint is null)
             {
                 return;
             }
 
             _lastHttpsBlockNotificationAt = DateTime.UtcNow;
-            var url = $"http://{endpoint.Ip}:{endpoint.DashboardPort}{notification.BlockedPagePath}";
-            TryOpenBlockedPage(url);
+            var url = BuildBlockedPageUrl(endpoint, notification);
+            if (!TryOpenBlockedPage(url))
+            {
+                _ = ReportHttpsBlockNotificationFailure(notification, url);
+            }
         }
         catch (Exception ex)
         {
@@ -202,7 +206,22 @@ public class ProxyClientService : BackgroundService
         }
     }
 
-    private void TryOpenBlockedPage(string url)
+    private static string BuildBlockedPageUrl(ServerEndpoint endpoint, HttpsBlockedNotification notification)
+    {
+        if (!string.IsNullOrWhiteSpace(notification.BlockedPageUrl) &&
+            Uri.TryCreate(notification.BlockedPageUrl, UriKind.Absolute, out _))
+        {
+            return notification.BlockedPageUrl;
+        }
+
+        var path = !string.IsNullOrWhiteSpace(notification.BlockedPagePath)
+            ? notification.BlockedPagePath
+            : "/blocked";
+
+        return $"http://{endpoint.Ip}:{endpoint.DashboardPort}{path}";
+    }
+
+    private bool TryOpenBlockedPage(string url)
     {
         try
         {
@@ -211,10 +230,36 @@ public class ProxyClientService : BackgroundService
                 FileName = url,
                 UseShellExecute = true
             });
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Nao foi possivel abrir a pagina local de bloqueio HTTPS: {Url}", url);
+            _logger.LogWarning(ex, "Nao foi possivel abrir a pagina de bloqueio HTTPS: {Url}", url);
+            return false;
+        }
+    }
+
+    private async Task ReportHttpsBlockNotificationFailure(HttpsBlockedNotification notification, string url)
+    {
+        try
+        {
+            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
+            {
+                return;
+            }
+
+            await _hubConnection.SendAsync(
+                "ReportHttpsBlockNotificationFailed",
+                notification.Ip,
+                notification.Host,
+                notification.Port,
+                notification.Reason,
+                notification.Policy,
+                url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao reportar que a pagina de bloqueio HTTPS nao abriu.");
         }
     }
 
@@ -428,5 +473,7 @@ public class ProxyClientService : BackgroundService
         public string Reason { get; set; } = "";
         public string Policy { get; set; } = "";
         public string BlockedPagePath { get; set; } = "";
+        public string BlockedPageUrl { get; set; } = "";
+        public string BlockDestination { get; set; } = "";
     }
 }

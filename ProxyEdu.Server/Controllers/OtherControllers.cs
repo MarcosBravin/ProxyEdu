@@ -75,6 +75,13 @@ public class SettingsController : ControllerBase
             return BadRequest("Portas devem estar entre 1 e 65535.");
         if (settings.MaxLogRetentionDays is < 1 or > 3650)
             return BadRequest("Retencao de logs deve estar entre 1 e 3650 dias.");
+        settings.BlockedRedirectUrl = settings.BlockedRedirectUrl?.Trim() ?? "";
+        if (!string.IsNullOrWhiteSpace(settings.BlockedRedirectUrl) &&
+            (!Uri.TryCreate(settings.BlockedRedirectUrl, UriKind.Absolute, out var redirectUri) ||
+             (redirectUri.Scheme != Uri.UriSchemeHttp && redirectUri.Scheme != Uri.UriSchemeHttps)))
+        {
+            return BadRequest("URL institucional de bloqueio deve ser http ou https.");
+        }
 
         _db.SaveSettings(settings);
         _filterService.InvalidateCache();

@@ -74,6 +74,7 @@ public class ProxySettings
     public string WelcomeMessage { get; set; } = "Acesso bloqueado pelo professor.";
     public bool ShowBlockPage { get; set; } = true;
     public bool EnableHttpsInspection { get; set; } = false;
+    public string BlockedRedirectUrl { get; set; } = "";
 }
 
 public class DashboardStats

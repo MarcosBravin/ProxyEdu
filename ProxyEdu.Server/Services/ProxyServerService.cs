@@ -170,7 +170,7 @@ public class ProxyServerService : BackgroundService
         // Check if student is completely blocked
         if (_studentManager.IsStudentBlocked(clientIp))
         {
-            await ServeBlockPage(
+            await RedirectToBlockPage(
                 e,
                 _filterService.ExtractDomain(url),
                 "Aluno bloqueado",
@@ -194,7 +194,7 @@ public class ProxyServerService : BackgroundService
         var decision = _filterService.EvaluateUrl(url, clientIp);
         if (!decision.IsAllowed)
         {
-            await ServeBlockPage(e, decision.Domain, decision.Reason, decision.Policy, requestType, clientIp);
+            await RedirectToBlockPage(e, decision.Domain, decision.Reason, decision.Policy, requestType, clientIp);
             _studentManager.UpdateActivity(clientIp, url, true, 0);
             LogAccess(clientIp, url, method, true, $"{requestType}: {decision.Reason}");
             LogProxyDecision(clientIp, decision.Domain, requestPort, requestType, decision.Policy, decision.MatchedRule, false, decision.Reason);
@@ -219,7 +219,7 @@ public class ProxyServerService : BackgroundService
         return Task.CompletedTask;
     }
 
-    private async Task ServeBlockPage(
+    private Task RedirectToBlockPage(
         SessionEventArgs e,
         string domain,
         string reason,
@@ -228,219 +228,38 @@ public class ProxyServerService : BackgroundService
         string clientIp)
     {
         var student = ResolveStudent(clientIp);
-        var safeDomain = WebUtility.HtmlEncode(domain);
-        var safeReason = WebUtility.HtmlEncode(reason);
-        var safePolicy = WebUtility.HtmlEncode(policy);
-        var safeBlockType = WebUtility.HtmlEncode(blockType);
-        var safeStudent = WebUtility.HtmlEncode(student?.Name ?? clientIp);
-        var safeTimestamp = WebUtility.HtmlEncode(DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
-        var html = $@"<!DOCTYPE html>
+        var blockKind = blockType.Contains("HTTPS", StringComparison.OrdinalIgnoreCase)
+            ? "https"
+            : "http";
+        var destination = BuildBlockedPageDestination(domain, reason, policy, blockKind);
+        var safeDestination = WebUtility.HtmlEncode(destination.Url);
+
+        e.Ok($@"<!DOCTYPE html>
 <html lang='pt-BR'>
 <head>
 <meta charset='UTF-8'>
-<meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>Foco na Aula — ProxyEdu</title>
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{
-    background: radial-gradient(1000px 620px at 20% -10%, #e8f1ff 0%, #f6f9ff 55%, #f8fbff 100%);
-    color:#12325f;
-    font-family:'Manrope','Segoe UI',sans-serif;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height:100vh;
-    padding:20px;
-  }}
-  .card {{
-    width:100%;
-    max-width:700px;
-    background: #ffffff;
-    border:1px solid #d5e2f4;
-    border-radius:20px;
-    padding:38px 34px;
-    box-shadow: 0 14px 34px rgba(20, 57, 110, 0.12);
-  }}
-  .top {{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    margin-bottom:18px;
-  }}
-  .icon {{
-    width:44px;
-    height:44px;
-    border-radius:12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: linear-gradient(135deg,#1d4ed8,#0ea5e9);
-    color:#fff;
-    font-size:22px;
-    font-weight:800;
-  }}
-  h1 {{
-    font-size:28px;
-    line-height:1.15;
-    letter-spacing:-0.02em;
-    color:#173b6f;
-  }}
-  .subtitle {{
-    color:#40618f;
-    font-size:15px;
-    margin-bottom:16px;
-  }}
-  .tips {{
-    background:#f8fbff;
-    border:1px solid #d8e6f8;
-    border-radius:14px;
-    padding:14px 16px;
-    margin-bottom:16px;
-  }}
-  .scenario {{
-    background:#fff8e8;
-    border:1px solid #f3dcaa;
-    border-radius:14px;
-    padding:13px 15px;
-    margin-bottom:16px;
-  }}
-  .scenario-text {{
-    color:#6f4f00;
-    font-size:14px;
-    line-height:1.6;
-  }}
-  .quote {{
-    background:#eef6ff;
-    border:1px solid #cfe2fb;
-    border-left:4px solid #3b82f6;
-    border-radius:12px;
-    padding:12px 14px;
-    margin-bottom:16px;
-  }}
-  .quote-text {{
-    color:#1f3f71;
-    font-size:14px;
-    line-height:1.6;
-    font-weight:600;
-  }}
-  .quote-author {{
-    color:#4c6fa3;
-    font-size:12px;
-    margin-top:6px;
-  }}
-  .tips h2 {{
-    font-size:14px;
-    color:#2563eb;
-    margin-bottom:8px;
-    text-transform:uppercase;
-    letter-spacing:.08em;
-  }}
-  .tips ul {{
-    margin-left:18px;
-    color:#1f3861;
-    line-height:1.65;
-    font-size:14px;
-  }}
-  .domain {{
-    color:#2c4f83;
-    font-family:ui-monospace,Consolas,'DM Mono',monospace;
-    font-size:12px;
-    word-break:break-word;
-    background:#f3f8ff;
-    border:1px solid #cadbf5;
-    border-radius:10px;
-    padding:9px 12px;
-  }}
-  .brand {{
-    margin-top:16px;
-    color:#5e7ba8;
-    font-size:12px;
-    text-align:center;
-    letter-spacing:.04em;
-  }}
-  @media (prefers-color-scheme: dark) {{
-    body {{
-      background: radial-gradient(1200px 700px at 20% -10%, #172445 0%, #070d1b 55%, #050a14 100%);
-      color:#dbe7ff;
-    }}
-    .card {{
-      background: rgba(9,16,32,0.88);
-      border:1px solid #22314d;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.42);
-    }}
-    h1 {{ color:#e2edff; }}
-    .subtitle {{ color:#9bb0d4; }}
-    .tips {{
-      background:rgba(12,23,44,0.7);
-      border:1px solid #1e325c;
-    }}
-    .tips h2 {{ color:#93c5fd; }}
-    .tips ul {{ color:#d3def3; }}
-    .domain {{
-      color:#9fb2d4;
-      background:#0b1429;
-      border:1px solid #1f3158;
-    }}
-    .brand {{ color:#6b87b6; }}
-    .scenario {{
-      background:rgba(56,42,10,0.55);
-      border:1px solid #6b5322;
-    }}
-    .scenario-text {{ color:#fde68a; }}
-    .quote {{
-      background:rgba(14, 36, 69, 0.75);
-      border:1px solid #2a4f85;
-      border-left:4px solid #60a5fa;
-    }}
-    .quote-text {{ color:#dbeafe; }}
-    .quote-author {{ color:#9ec5ff; }}
-  }}
-</style>
+<meta http-equiv='refresh' content='0; url={safeDestination}'>
+<title>ProxyEdu - redirecionando</title>
 </head>
 <body>
-  <div class='card'>
-    <div class='top'>
-      <div class='icon'>F</div>
-      <h1>Foco na Aula</h1>
-    </div>
-    <div class='subtitle'>Este conte&uacute;do est&aacute; restrito neste momento para ajudar na concentra&ccedil;&atilde;o da turma.</div>
-
-    <div class='tips'>
-      <h2>O que fazer agora</h2>
-      <ul>
-        <li>Volte para a atividade indicada na aula.</li>
-        <li>Use os materiais oficiais da disciplina.</li>
-        <li>Se este site for necess&aacute;rio para a tarefa, avise o professor.</li>
-      </ul>
-    </div>
-
-    <div class='scenario'>
-      <div class='scenario-text'>
-        Neste momento, a turma est&aacute; em atividade guiada. O objetivo &eacute; manter aten&ccedil;&atilde;o no conte&uacute;do da aula e concluir a tarefa dentro do tempo planejado.
-      </div>
-    </div>
-
-    <div class='quote'>
-      <div class='quote-text'>&ldquo;A educa&ccedil;&atilde;o &eacute; a arma mais poderosa que voc&ecirc; pode usar para mudar o mundo.&rdquo;</div>
-      <div class='quote-author'>Nelson Mandela</div>
-    </div>
-
-    <div class='domain'>
-      <div><strong>Dominio:</strong> {safeDomain}</div>
-      <div><strong>Motivo:</strong> {safeReason}</div>
-      <div><strong>Politica:</strong> {safePolicy}</div>
-      <div><strong>Tipo:</strong> {safeBlockType}</div>
-      <div><strong>Dispositivo/aluno:</strong> {safeStudent}</div>
-      <div><strong>Horario:</strong> {safeTimestamp}</div>
-    </div>
-    <div class='brand'>ProxyEdu - Ambiente Educacional</div>
-  </div>
+  <p>Acesso bloqueado pelo ProxyEdu. Redirecionando para a pagina de aviso...</p>
+  <p><a href='{safeDestination}'>Abrir pagina de aviso</a></p>
 </body>
-</html>";
+</html>");
+        e.HttpClient.Response.StatusCode = 302;
+        e.HttpClient.Response.StatusDescription = "ProxyEdu: redirecionando para aviso de bloqueio";
+        e.HttpClient.Response.Headers.AddHeader("Location", destination.Url);
 
-        e.Ok(html);
-        e.HttpClient.Response.StatusCode = 403;
-        e.HttpClient.Response.StatusDescription = "ProxyEdu: acesso bloqueado";
+        _logger.LogInformation(
+            "Blocked request redirected: host={Host} type={Type} destination={Destination} url={RedirectUrl} student={Student} ip={Ip}",
+            domain,
+            blockType,
+            destination.Kind,
+            destination.Url,
+            student?.Name ?? "-",
+            IpAddressNormalizer.Normalize(clientIp));
+
+        return Task.CompletedTask;
     }
 
     private StudentInfo? ResolveStudent(string ip)
@@ -581,7 +400,7 @@ public class ProxyServerService : BackgroundService
     {
         var normalizedIp = IpAddressNormalizer.Normalize(clientIp);
         var student = ResolveStudent(normalizedIp);
-        var blockedPagePath = BuildBlockedPagePath(host, reason, policy, student?.Name);
+        var destination = BuildBlockedPageDestination(host, reason, policy, "https");
 
         _ = _hub.Clients.All.SendAsync("HttpsBlocked", new
         {
@@ -593,24 +412,69 @@ public class ProxyServerService : BackgroundService
             matchedRule,
             studentId = student?.Id ?? "",
             studentName = student?.Name ?? "",
-            blockedPagePath,
+            blockedPagePath = destination.IsLocal ? destination.Url : "",
+            blockedPageUrl = destination.Url,
+            blockDestination = destination.Kind,
             timestamp = DateTime.UtcNow
         });
+
+        _logger.LogInformation(
+            "HTTPS CONNECT blocked notification sent: host={Host} port={Port} destination={Destination} url={Url} student={Student} ip={Ip}",
+            host,
+            port,
+            destination.Kind,
+            destination.Url,
+            student?.Name ?? "-",
+            normalizedIp);
     }
 
-    private static string BuildBlockedPagePath(string host, string reason, string policy, string? studentName)
+    private BlockPageDestination BuildBlockedPageDestination(
+        string host,
+        string reason,
+        string policy,
+        string requestType)
     {
-        var query = new[]
+        var settings = _db.GetSettings();
+        var query = new Dictionary<string, string>
         {
-            $"host={Uri.EscapeDataString(host)}",
-            $"reason={Uri.EscapeDataString(reason)}",
-            $"policy={Uri.EscapeDataString(policy)}",
-            "type=https",
-            $"student={Uri.EscapeDataString(studentName ?? string.Empty)}"
+            ["host"] = host,
+            ["reason"] = reason,
+            ["type"] = requestType,
+            ["policy"] = policy
         };
 
-        return "/blocked?" + string.Join("&", query);
+        if (!string.IsNullOrWhiteSpace(settings.BlockedRedirectUrl))
+        {
+            if (Uri.TryCreate(settings.BlockedRedirectUrl.Trim(), UriKind.Absolute, out var configuredUrl) &&
+                (configuredUrl.Scheme == Uri.UriSchemeHttp || configuredUrl.Scheme == Uri.UriSchemeHttps))
+            {
+                return new BlockPageDestination(
+                    AppendQuery(configuredUrl.ToString(), query),
+                    "institutional redirect",
+                    false);
+            }
+
+            _logger.LogWarning(
+                "Configured block page URL is invalid and local /blocked fallback will be used: {BlockedRedirectUrl}",
+                settings.BlockedRedirectUrl);
+        }
+
+        return new BlockPageDestination(
+            AppendQuery("/blocked", query),
+            "local blocked page",
+            true);
     }
+
+    private static string AppendQuery(string baseUrl, IReadOnlyDictionary<string, string> values)
+    {
+        var separator = baseUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+        var query = string.Join("&", values.Select(item =>
+            $"{Uri.EscapeDataString(item.Key)}={Uri.EscapeDataString(item.Value ?? string.Empty)}"));
+
+        return baseUrl + separator + query;
+    }
+
+    private sealed record BlockPageDestination(string Url, string Kind, bool IsLocal);
 
     public override void Dispose()
     {

@@ -29,7 +29,10 @@ public class DatabaseService : IDisposable
         {
             settings.Insert(new ProxySettings
             {
-                EnableHttpsInspection = _config.GetValue<bool?>("Proxy:EnableHttpsInspection") ?? false
+                EnableHttpsInspection = _config.GetValue<bool?>("Proxy:EnableHttpsInspection") ?? false,
+                BlockedRedirectUrl = _config["BlockPage:InstitutionalUrl"]
+                    ?? _config["Proxy:BlockedRedirectUrl"]
+                    ?? ""
             });
         }
 

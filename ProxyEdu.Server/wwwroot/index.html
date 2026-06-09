@@ -1280,6 +1280,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
               <input class="form-input" type="text" id="blockMessage" value="Acesso bloqueado pelo professor.">
             </div>
             <div class="form-group">
+              <label class="form-label">URL institucional de bloqueio</label>
+              <input class="form-input" type="url" id="blockedRedirectUrl" placeholder="https://minha-escola.com/aviso-bloqueio">
+            </div>
+            <div class="form-group">
               <label class="form-label">Retenção de logs (dias)</label>
               <input class="form-input" type="number" id="logRetention" value="30">
             </div>
@@ -1662,7 +1666,11 @@ function initSignalR() {
 
   connection.on('HttpsBlocked', (data) => {
     if (data.studentId) updateStudentUrl(data.studentId, `https://${data.host}:${data.port}`);
-    toast(`HTTPS bloqueado: ${data.host} - ${data.reason}`, 'info');
+    toast(`HTTPS bloqueado: ${data.host} - ${data.reason} (${data.blockDestination || 'CONNECT blocked only'})`, 'info');
+  });
+
+  connection.on('HttpsBlockNotificationFailed', (data) => {
+    toast(`HTTPS bloqueado: ${data.host} - pagina de aviso nao abriu no cliente (${data.blockDestination})`, 'warning');
   });
 
   connection.on('AllStudentsUpdated', () => {
@@ -1710,7 +1718,7 @@ function loadMockData() {
     { id:'g1', name:'Turma A', color:'#3b82f6' },
     { id:'g2', name:'Turma B', color:'#22c55e' },
   ];
-  settings = { proxyPort:8888, dashboardPort:5000, whitelistMode:false, logAllRequests:true, maxLogRetentionDays:30, welcomeMessage:'Acesso bloqueado pelo professor.', enableHttpsInspection:false };
+  settings = { proxyPort:8888, dashboardPort:5000, whitelistMode:false, logAllRequests:true, maxLogRetentionDays:30, welcomeMessage:'Acesso bloqueado pelo professor.', enableHttpsInspection:false, blockedRedirectUrl:'' };
 
   renderAll();
   toast('Demo mode ativo — conecte o servidor para dados reais', 'info');
@@ -2454,6 +2462,7 @@ function renderSettings() {
   const pp = document.getElementById('proxyPort');
   const dp = document.getElementById('dashboardPort');
   const bm = document.getElementById('blockMessage');
+  const br = document.getElementById('blockedRedirectUrl');
   const lr = document.getElementById('logRetention');
   const la = document.getElementById('logAllToggle');
   const wm = document.getElementById('whitelistModeToggle');
@@ -2462,6 +2471,7 @@ function renderSettings() {
   if (pp) pp.value = settings.proxyPort || 8888;
   if (dp) dp.value = settings.dashboardPort || 5000;
   if (bm) bm.value = settings.welcomeMessage || '';
+  if (br) br.value = settings.blockedRedirectUrl || '';
   if (lr) lr.value = settings.maxLogRetentionDays || 30;
   if (la) { if (settings.logAllRequests) la.classList.add('on'); else la.classList.remove('on'); }
   if (hi) {
@@ -2480,6 +2490,7 @@ async function saveSettings() {
     proxyPort: parseInt(document.getElementById('proxyPort').value),
     dashboardPort: parseInt(document.getElementById('dashboardPort').value),
     welcomeMessage: document.getElementById('blockMessage').value,
+    blockedRedirectUrl: document.getElementById('blockedRedirectUrl').value.trim(),
     maxLogRetentionDays: parseInt(document.getElementById('logRetention').value),
     logAllRequests: document.getElementById('logAllToggle').classList.contains('on'),
     enableHttpsInspection: document.getElementById('httpsInspectionToggle').classList.contains('on'),
