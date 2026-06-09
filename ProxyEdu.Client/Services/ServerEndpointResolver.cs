@@ -127,7 +127,7 @@ public class ServerEndpointResolver
                     continue;
                 }
 
-                var response = receiveTask.Result;
+                var response = await receiveTask;
                 var dashboardPort = defaultDashboardPort;
                 var proxyPort = defaultProxyPort;
                 var enableHttpsInspection = false;
@@ -170,7 +170,8 @@ public class ServerEndpointResolver
                 ex.SocketErrorCode == SocketError.HostUnreachable ||
                 ex.SocketErrorCode == SocketError.NetworkUnreachable ||
                 ex.SocketErrorCode == SocketError.AddressNotAvailable ||
-                ex.SocketErrorCode == SocketError.AddressFamilyNotSupported)
+                ex.SocketErrorCode == SocketError.AddressFamilyNotSupported ||
+                ex.SocketErrorCode == SocketError.ConnectionReset)
             {
                 _logger.LogWarning(
                     "Discovery UDP indisponivel nesta rede (tentativa {Attempt}/3): {SocketError}",

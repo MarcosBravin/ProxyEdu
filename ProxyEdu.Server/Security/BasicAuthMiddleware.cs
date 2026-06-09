@@ -102,6 +102,7 @@ public class BasicAuthMiddleware
 
         return path.StartsWithSegments("/api/students/register", StringComparison.OrdinalIgnoreCase) ||
                path.StartsWithSegments("/api/students/heartbeat", StringComparison.OrdinalIgnoreCase) ||
+               path.StartsWithSegments("/api/health", StringComparison.OrdinalIgnoreCase) ||
                path.StartsWithSegments("/api/certificate/root", StringComparison.OrdinalIgnoreCase) ||
                path.StartsWithSegments("/hub", StringComparison.OrdinalIgnoreCase);
     }
