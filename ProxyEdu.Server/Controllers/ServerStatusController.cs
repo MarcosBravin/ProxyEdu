@@ -10,11 +10,19 @@ public class ServerStatusController : ControllerBase
 {
     private readonly ServerHealthService _healthService;
     private readonly StudentManagerService _studentManager;
+    private readonly DatabaseService _db;
+    private readonly ProxyServerService _proxyServerService;
 
-    public ServerStatusController(ServerHealthService healthService, StudentManagerService studentManager)
+    public ServerStatusController(
+        ServerHealthService healthService,
+        StudentManagerService studentManager,
+        DatabaseService db,
+        ProxyServerService proxyServerService)
     {
         _healthService = healthService;
         _studentManager = studentManager;
+        _db = db;
+        _proxyServerService = proxyServerService;
     }
 
     [HttpGet]
@@ -29,6 +37,22 @@ public class ServerStatusController : ControllerBase
         // Add student info to response
         healthStats.ConnectedStudents = connectedStudents;
         healthStats.TotalStudents = students.Count;
+        var settings = _db.GetSettings();
+        healthStats.HttpsInspectionEnabled = settings.EnableHttpsInspection;
+        healthStats.RootCertificateTrusted = _proxyServerService.IsRootCertificateTrusted();
+        healthStats.HttpsProxyMode = settings.EnableHttpsInspection ? "Inspection" : "Tunnel";
+
+        if (settings.EnableHttpsInspection && !healthStats.RootCertificateTrusted)
+        {
+            healthStats.Alerts.Add(new ServerAlert
+            {
+                Type = AlertType.Warning,
+                Message = "Inspecao HTTPS ativada, mas o certificado raiz do proxy nao esta confiavel. O proxy mantera HTTPS em modo tunel para evitar erro de certificado.",
+                Value = 0,
+                Threshold = 1,
+                Timestamp = DateTime.UtcNow
+            });
+        }
 
         return Ok(healthStats);
     }
@@ -54,6 +78,9 @@ public class ServerStatusController : ControllerBase
             networkSent = stats.NetworkBytesSent,
             networkReceived = stats.NetworkBytesReceived,
             uptime = stats.UptimeSeconds,
+            httpsProxyMode = stats.HttpsProxyMode,
+            httpsInspectionEnabled = stats.HttpsInspectionEnabled,
+            rootCertificateTrusted = stats.RootCertificateTrusted,
             timestamp = stats.Timestamp
         });
     }

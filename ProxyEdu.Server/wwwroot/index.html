@@ -1287,6 +1287,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
               <div class="toggle" id="logAllToggle" onclick="toggleLogAll()"></div>
               <span style="font-size:13px;color:var(--text2)">Registrar todas as requisições</span>
             </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div class="toggle" id="httpsInspectionToggle" onclick="toggleHttpsInspection()"></div>
+              <span style="font-size:13px;color:var(--text2)">Inspeção HTTPS <span id="httpsInspectionLabel" style="font-family:var(--mono);color:var(--text3)">Desativada</span></span>
+            </div>
             <button class="btn btn-primary" onclick="saveSettings()"><span class="material-symbols-rounded icon-btn">save</span> Salvar Configurações</button>
           </div>
         </div>
@@ -1656,6 +1660,11 @@ function initSignalR() {
     updateStudentUrl(data.studentId, data.url);
   });
 
+  connection.on('HttpsBlocked', (data) => {
+    if (data.studentId) updateStudentUrl(data.studentId, `https://${data.host}:${data.port}`);
+    toast(`HTTPS bloqueado: ${data.host} - ${data.reason}`, 'info');
+  });
+
   connection.on('AllStudentsUpdated', () => {
     loadStudents();
   });
@@ -1701,7 +1710,7 @@ function loadMockData() {
     { id:'g1', name:'Turma A', color:'#3b82f6' },
     { id:'g2', name:'Turma B', color:'#22c55e' },
   ];
-  settings = { proxyPort:8888, dashboardPort:5000, whitelistMode:false, logAllRequests:true, maxLogRetentionDays:30, welcomeMessage:'Acesso bloqueado pelo professor.' };
+  settings = { proxyPort:8888, dashboardPort:5000, whitelistMode:false, logAllRequests:true, maxLogRetentionDays:30, welcomeMessage:'Acesso bloqueado pelo professor.', enableHttpsInspection:false };
 
   renderAll();
   toast('Demo mode ativo — conecte o servidor para dados reais', 'info');
@@ -2448,12 +2457,17 @@ function renderSettings() {
   const lr = document.getElementById('logRetention');
   const la = document.getElementById('logAllToggle');
   const wm = document.getElementById('whitelistModeToggle');
+  const hi = document.getElementById('httpsInspectionToggle');
 
   if (pp) pp.value = settings.proxyPort || 8888;
   if (dp) dp.value = settings.dashboardPort || 5000;
   if (bm) bm.value = settings.welcomeMessage || '';
   if (lr) lr.value = settings.maxLogRetentionDays || 30;
   if (la) { if (settings.logAllRequests) la.classList.add('on'); else la.classList.remove('on'); }
+  if (hi) {
+    if (settings.enableHttpsInspection) { hi.classList.add('on'); document.getElementById('httpsInspectionLabel').textContent = 'Ativada'; }
+    else { hi.classList.remove('on'); document.getElementById('httpsInspectionLabel').textContent = 'Desativada'; }
+  }
   if (wm) {
     if (settings.whitelistMode) { wm.classList.add('on'); document.getElementById('whitelistModeLabel').textContent = 'Ativado'; }
     else { wm.classList.remove('on'); document.getElementById('whitelistModeLabel').textContent = 'Desativado'; }
@@ -2467,6 +2481,8 @@ async function saveSettings() {
     dashboardPort: parseInt(document.getElementById('dashboardPort').value),
     welcomeMessage: document.getElementById('blockMessage').value,
     maxLogRetentionDays: parseInt(document.getElementById('logRetention').value),
+    logAllRequests: document.getElementById('logAllToggle').classList.contains('on'),
+    enableHttpsInspection: document.getElementById('httpsInspectionToggle').classList.contains('on'),
   };
   const data = await api('PUT', '/settings', updated);
   if (data) settings = data;
@@ -2476,6 +2492,12 @@ async function saveSettings() {
 function toggleLogAll() {
   const el = document.getElementById('logAllToggle');
   el.classList.toggle('on');
+}
+
+function toggleHttpsInspection() {
+  const el = document.getElementById('httpsInspectionToggle');
+  el.classList.toggle('on');
+  document.getElementById('httpsInspectionLabel').textContent = el.classList.contains('on') ? 'Ativada' : 'Desativada';
 }
 
 async function toggleWhitelistMode() {
@@ -2812,5 +2834,3 @@ function formatBytes(bytes) {
 </script>
 </body>
 </html>
-
-

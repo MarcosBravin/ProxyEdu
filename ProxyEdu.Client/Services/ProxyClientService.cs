@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Win32;
 using Newtonsoft.Json;
+using System.Diagnostics;
 using System.Management;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -16,6 +17,8 @@ public class ProxyClientService : BackgroundService
     private string? _currentHubUrl;
     private string? _currentProxyAddress;
     private string? _trustedRootThumbprint;
+    private ServerEndpoint? _currentEndpoint;
+    private DateTime _lastHttpsBlockNotificationAt = DateTime.MinValue;
     private bool _proxyEnabled;
 
     [DllImport("wininet.dll")]
@@ -38,9 +41,13 @@ public class ProxyClientService : BackgroundService
             try
             {
                 var endpoint = await _endpointResolver.ResolveAsync(stoppingToken);
+                _currentEndpoint = endpoint;
                 var proxyAddress = $"{endpoint.Ip}:{endpoint.ProxyPort}";
 
-                await EnsureProxyRootCertificateTrustedAsync(endpoint, stoppingToken);
+                if (endpoint.EnableHttpsInspection)
+                {
+                    await EnsureProxyRootCertificateTrustedAsync(endpoint, stoppingToken);
+                }
                 await EnsureHubConnectionAsync(endpoint, stoppingToken);
 
                 if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Disconnected)
@@ -133,6 +140,11 @@ public class ProxyClientService : BackgroundService
             _logger.LogWarning("Servidor solicitou desconexao");
         });
 
+        _hubConnection.On<HttpsBlockedNotification>("HttpsBlocked", notification =>
+        {
+            HandleHttpsBlockedNotification(notification);
+        });
+
         _hubConnection.Reconnecting += ex =>
         {
             _logger.LogWarning("Conexao com servidor em reconexao: {Message}", ex?.Message);
@@ -149,6 +161,61 @@ public class ProxyClientService : BackgroundService
         };
 
         _currentHubUrl = hubUrl;
+    }
+
+    private void HandleHttpsBlockedNotification(HttpsBlockedNotification notification)
+    {
+        try
+        {
+            var localIp = GetLocalIp();
+            if (!string.IsNullOrWhiteSpace(notification.Ip) &&
+                !string.Equals(notification.Ip, localIp, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _logger.LogWarning(
+                "Bloqueio HTTPS recebido: host={Host} porta={Port} motivo={Reason} politica={Policy}",
+                notification.Host,
+                notification.Port,
+                notification.Reason,
+                notification.Policy);
+
+            if ((DateTime.UtcNow - _lastHttpsBlockNotificationAt) < TimeSpan.FromSeconds(10))
+            {
+                return;
+            }
+
+            var endpoint = _currentEndpoint;
+            if (endpoint is null || string.IsNullOrWhiteSpace(notification.BlockedPagePath))
+            {
+                return;
+            }
+
+            _lastHttpsBlockNotificationAt = DateTime.UtcNow;
+            var url = $"http://{endpoint.Ip}:{endpoint.DashboardPort}{notification.BlockedPagePath}";
+            TryOpenBlockedPage(url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao processar notificacao de bloqueio HTTPS");
+        }
+    }
+
+    private void TryOpenBlockedPage(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Nao foi possivel abrir a pagina local de bloqueio HTTPS: {Url}", url);
+        }
     }
 
     private async Task RegisterWithServer(ServerEndpoint endpoint)
@@ -351,5 +418,15 @@ public class ProxyClientService : BackgroundService
         }
 
         await base.StopAsync(cancellationToken);
+    }
+
+    private sealed class HttpsBlockedNotification
+    {
+        public string Ip { get; set; } = "";
+        public string Host { get; set; } = "";
+        public int Port { get; set; }
+        public string Reason { get; set; } = "";
+        public string Policy { get; set; } = "";
+        public string BlockedPagePath { get; set; } = "";
     }
 }

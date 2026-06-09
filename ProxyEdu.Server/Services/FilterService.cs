@@ -7,6 +7,7 @@ public class FilterService
 {
     private readonly DatabaseService _db;
     private readonly object _cacheLock = new();
+    private readonly Dictionary<string, (StudentInfo? Student, DateTime ExpiresAtUtc)> _studentCache = new(StringComparer.OrdinalIgnoreCase);
     private RuleSnapshot? _cachedSnapshot;
 
     public FilterService(DatabaseService db)
@@ -16,35 +17,46 @@ public class FilterService
 
     public bool IsUrlAllowed(string url, string studentIp)
     {
-        var settings = _db.GetSettings();
+        return EvaluateUrl(url, studentIp).IsAllowed;
+    }
+
+    public FilterDecision EvaluateUrl(string url, string studentIp)
+    {
         var normalizedStudentIp = IpAddressNormalizer.Normalize(studentIp);
-        var student = _db.Students.FindOne(s => s.IpAddress == normalizedStudentIp)
-            ?? _db.Students.FindAll().FirstOrDefault(s => IpAddressNormalizer.EqualsNormalized(s.IpAddress, normalizedStudentIp));
-
-        if (student != null &&
-            !string.Equals(student.IpAddress, normalizedStudentIp, StringComparison.OrdinalIgnoreCase))
-        {
-            student.IpAddress = normalizedStudentIp;
-            _db.Students.Update(student);
-        }
-
         var snapshot = GetOrBuildSnapshot();
+        var student = ResolveStudentCached(normalizedStudentIp);
         var safeUrl = url ?? string.Empty;
         var normalizedUrl = safeUrl.ToLowerInvariant();
         var normalizedDomain = ExtractDomain(safeUrl).ToLowerInvariant();
 
-        if (HasWhitelistMatch(snapshot, student, normalizedUrl, normalizedDomain))
+        var whitelistMatch = FindWhitelistMatch(snapshot, student, normalizedUrl, normalizedDomain);
+        if (whitelistMatch != null)
         {
-            return true;
+            return FilterDecision.Allowed(
+                normalizedDomain,
+                "liberado por regra explicita",
+                whitelistMatch.Pattern,
+                whitelistMatch.Scope,
+                "allowlist");
         }
 
-        if (HasBlacklistMatch(snapshot, student, normalizedUrl, normalizedDomain))
+        var blacklistMatch = FindBlacklistMatch(snapshot, student, normalizedUrl, normalizedDomain);
+        if (blacklistMatch != null)
         {
-            return false;
+            var reason = string.IsNullOrWhiteSpace(blacklistMatch.Category)
+                ? "bloqueado por dominio"
+                : "bloqueado por categoria";
+
+            return FilterDecision.Blocked(
+                normalizedDomain,
+                reason,
+                blacklistMatch.Pattern,
+                blacklistMatch.Scope,
+                "blocklist");
         }
 
         // Mantém o comportamento atual de fallback em whitelist mode.
-        if (settings.WhitelistMode)
+        if (snapshot.WhitelistMode)
         {
             var hasWhitelistRules = snapshot.Global.HasWhitelist
                 || (student != null &&
@@ -54,71 +66,93 @@ public class FilterService
                     snapshot.ByGroup.TryGetValue(student.Group, out var groupRules) &&
                     groupRules.HasWhitelist);
 
-            return !hasWhitelistRules;
+            if (hasWhitelistRules)
+            {
+                return FilterDecision.Blocked(
+                    normalizedDomain,
+                    "bloqueado por politica padrao",
+                    null,
+                    "policy",
+                    "allowlist-default");
+            }
+
+            return FilterDecision.Allowed(
+                normalizedDomain,
+                "liberado por politica padrao",
+                null,
+                "policy",
+                "allowlist-empty");
         }
 
-        return true;
+        return FilterDecision.Allowed(
+            normalizedDomain,
+            "liberado por politica padrao",
+            null,
+            "policy",
+            "blocklist-default");
     }
 
-    private static bool HasWhitelistMatch(RuleSnapshot snapshot, StudentInfo? student, string normalizedUrl, string normalizedDomain)
+    private static RuleMatch? FindWhitelistMatch(RuleSnapshot snapshot, StudentInfo? student, string normalizedUrl, string normalizedDomain)
     {
-        if (HasMatch(snapshot.Global.Whitelist, normalizedUrl, normalizedDomain))
+        var match = FindMatch(snapshot.Global.Whitelist, normalizedUrl, normalizedDomain, "global");
+        if (match != null)
         {
-            return true;
+            return match;
         }
 
         if (student != null &&
             snapshot.ByStudentId.TryGetValue(student.Id, out var studentRules) &&
-            HasMatch(studentRules.Whitelist, normalizedUrl, normalizedDomain))
+            (match = FindMatch(studentRules.Whitelist, normalizedUrl, normalizedDomain, "student")) != null)
         {
-            return true;
+            return match;
         }
 
         if (!string.IsNullOrWhiteSpace(student?.Group) &&
             snapshot.ByGroup.TryGetValue(student.Group, out var groupRules) &&
-            HasMatch(groupRules.Whitelist, normalizedUrl, normalizedDomain))
+            (match = FindMatch(groupRules.Whitelist, normalizedUrl, normalizedDomain, "group")) != null)
         {
-            return true;
+            return match;
         }
 
-        return false;
+        return null;
     }
 
-    private static bool HasBlacklistMatch(RuleSnapshot snapshot, StudentInfo? student, string normalizedUrl, string normalizedDomain)
+    private static RuleMatch? FindBlacklistMatch(RuleSnapshot snapshot, StudentInfo? student, string normalizedUrl, string normalizedDomain)
     {
-        if (HasMatch(snapshot.Global.Blacklist, normalizedUrl, normalizedDomain))
+        var match = FindMatch(snapshot.Global.Blacklist, normalizedUrl, normalizedDomain, "global");
+        if (match != null)
         {
-            return true;
+            return match;
         }
 
         if (student != null &&
             snapshot.ByStudentId.TryGetValue(student.Id, out var studentRules) &&
-            HasMatch(studentRules.Blacklist, normalizedUrl, normalizedDomain))
+            (match = FindMatch(studentRules.Blacklist, normalizedUrl, normalizedDomain, "student")) != null)
         {
-            return true;
+            return match;
         }
 
         if (!string.IsNullOrWhiteSpace(student?.Group) &&
             snapshot.ByGroup.TryGetValue(student.Group, out var groupRules) &&
-            HasMatch(groupRules.Blacklist, normalizedUrl, normalizedDomain))
+            (match = FindMatch(groupRules.Blacklist, normalizedUrl, normalizedDomain, "group")) != null)
         {
-            return true;
+            return match;
         }
 
-        return false;
+        return null;
     }
 
-    private static bool HasMatch(List<PreparedRule> rules, string normalizedUrl, string normalizedDomain)
+    private static RuleMatch? FindMatch(List<PreparedRule> rules, string normalizedUrl, string normalizedDomain, string scope)
     {
         foreach (var rule in rules)
         {
             if (rule.Matches(normalizedUrl, normalizedDomain))
             {
-                return true;
+                return new RuleMatch(rule.Pattern, scope, rule.Category);
             }
         }
 
-        return false;
+        return null;
     }
 
     private RuleSnapshot GetOrBuildSnapshot()
@@ -130,23 +164,60 @@ public class FilterService
                 return _cachedSnapshot;
             }
 
+            var settings = _db.GetSettings();
             var activeRules = _db.FilterRules.Find(r => r.IsActive).ToList();
-            _cachedSnapshot = RuleSnapshot.Build(activeRules);
+            _cachedSnapshot = RuleSnapshot.Build(activeRules, settings.WhitelistMode);
             return _cachedSnapshot;
         }
     }
 
-    private void InvalidateSnapshot()
+    public void InvalidateCache()
     {
         lock (_cacheLock)
         {
             _cachedSnapshot = null;
+            _studentCache.Clear();
         }
+    }
+
+    private StudentInfo? ResolveStudentCached(string normalizedStudentIp)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedStudentIp))
+        {
+            return null;
+        }
+
+        var now = DateTime.UtcNow;
+        lock (_cacheLock)
+        {
+            if (_studentCache.TryGetValue(normalizedStudentIp, out var cached) && cached.ExpiresAtUtc > now)
+            {
+                return cached.Student;
+            }
+        }
+
+        var student = _db.Students.FindOne(s => s.IpAddress == normalizedStudentIp)
+            ?? _db.Students.FindAll().FirstOrDefault(s => IpAddressNormalizer.EqualsNormalized(s.IpAddress, normalizedStudentIp));
+
+        if (student != null &&
+            !string.Equals(student.IpAddress, normalizedStudentIp, StringComparison.OrdinalIgnoreCase))
+        {
+            student.IpAddress = normalizedStudentIp;
+            _db.Students.Update(student);
+        }
+
+        lock (_cacheLock)
+        {
+            _studentCache[normalizedStudentIp] = (student, now.AddSeconds(5));
+        }
+
+        return student;
     }
 
     private static PreparedRule PrepareRule(FilterRule rule)
     {
         var normalizedPattern = (rule.Pattern ?? string.Empty).Trim().ToLowerInvariant();
+        var category = (rule.Category ?? string.Empty).Trim();
 
         if (normalizedPattern.StartsWith("/") && normalizedPattern.EndsWith("/") && normalizedPattern.Length > 1)
         {
@@ -155,11 +226,12 @@ public class FilterService
                 return new PreparedRule(rule.Type, RuleMatchKind.Regex, normalizedPattern, new Regex(
                     normalizedPattern[1..^1],
                     RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
-                    TimeSpan.FromMilliseconds(200)));
+                    TimeSpan.FromMilliseconds(200)),
+                    category);
             }
             catch
             {
-                return new PreparedRule(rule.Type, RuleMatchKind.NeverMatch, normalizedPattern, null);
+                return new PreparedRule(rule.Type, RuleMatchKind.NeverMatch, normalizedPattern, null, category);
             }
         }
 
@@ -169,10 +241,11 @@ public class FilterService
             return new PreparedRule(rule.Type, RuleMatchKind.Wildcard, normalizedPattern, new Regex(
                 regexPattern,
                 RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
-                TimeSpan.FromMilliseconds(200)));
+                TimeSpan.FromMilliseconds(200)),
+                category);
         }
 
-        return new PreparedRule(rule.Type, RuleMatchKind.Contains, normalizedPattern, null);
+        return new PreparedRule(rule.Type, RuleMatchKind.Contains, normalizedPattern, null, category);
     }
 
     public string ExtractDomain(string url)
@@ -194,14 +267,14 @@ public class FilterService
     public FilterRule AddRule(FilterRule rule)
     {
         _db.FilterRules.Insert(rule);
-        InvalidateSnapshot();
+        InvalidateCache();
         return rule;
     }
 
     public void UpdateRule(FilterRule rule)
     {
         _db.FilterRules.Update(rule);
-        InvalidateSnapshot();
+        InvalidateCache();
     }
 
     public bool DeleteRule(string id)
@@ -209,7 +282,7 @@ public class FilterService
         var deleted = _db.FilterRules.Delete(id);
         if (deleted)
         {
-            InvalidateSnapshot();
+            InvalidateCache();
         }
 
         return deleted;
@@ -221,7 +294,7 @@ public class FilterService
         if (rule == null) return;
         rule.IsActive = !rule.IsActive;
         _db.FilterRules.Update(rule);
-        InvalidateSnapshot();
+        InvalidateCache();
     }
 
     private sealed class RuleSnapshot
@@ -229,18 +302,21 @@ public class FilterService
         public ScopeRules Global { get; }
         public Dictionary<string, ScopeRules> ByStudentId { get; }
         public Dictionary<string, ScopeRules> ByGroup { get; }
+        public bool WhitelistMode { get; }
 
         private RuleSnapshot(
             ScopeRules global,
             Dictionary<string, ScopeRules> byStudentId,
-            Dictionary<string, ScopeRules> byGroup)
+            Dictionary<string, ScopeRules> byGroup,
+            bool whitelistMode)
         {
             Global = global;
             ByStudentId = byStudentId;
             ByGroup = byGroup;
+            WhitelistMode = whitelistMode;
         }
 
-        public static RuleSnapshot Build(List<FilterRule> activeRules)
+        public static RuleSnapshot Build(List<FilterRule> activeRules, bool whitelistMode)
         {
             var global = new ScopeRules();
             var byStudentId = new Dictionary<string, ScopeRules>(StringComparer.OrdinalIgnoreCase);
@@ -279,7 +355,7 @@ public class FilterService
                 global.Add(prepared);
             }
 
-            return new RuleSnapshot(global, byStudentId, byGroup);
+            return new RuleSnapshot(global, byStudentId, byGroup, whitelistMode);
         }
     }
 
@@ -313,8 +389,9 @@ public class FilterService
     private sealed class PreparedRule
     {
         public FilterType Type { get; }
+        public string Category { get; }
         private RuleMatchKind Kind { get; }
-        private string Pattern { get; }
+        public string Pattern { get; }
         private Regex? Regex { get; }
 
         public PreparedRule(FilterType type, RuleMatchKind kind, string pattern, Regex? regex)
@@ -323,6 +400,13 @@ public class FilterService
             Kind = kind;
             Pattern = pattern;
             Regex = regex;
+            Category = string.Empty;
+        }
+
+        public PreparedRule(FilterType type, RuleMatchKind kind, string pattern, Regex? regex, string category)
+            : this(type, kind, pattern, regex)
+        {
+            Category = category;
         }
 
         public bool Matches(string normalizedUrl, string normalizedDomain)
@@ -336,8 +420,8 @@ public class FilterService
             {
                 return Kind switch
                 {
-                    RuleMatchKind.Contains => normalizedDomain.Contains(Pattern, StringComparison.Ordinal) ||
-                                              normalizedUrl.Contains(Pattern, StringComparison.Ordinal),
+                    RuleMatchKind.Contains => DomainMatches(normalizedDomain, Pattern) ||
+                                              Pattern.Contains('/') && normalizedUrl.Contains(Pattern, StringComparison.Ordinal),
                     RuleMatchKind.Wildcard => Regex != null && (Regex.IsMatch(normalizedDomain) || Regex.IsMatch(normalizedUrl)),
                     RuleMatchKind.Regex => Regex != null && Regex.IsMatch(normalizedUrl),
                     _ => false
@@ -348,5 +432,37 @@ public class FilterService
                 return false;
             }
         }
+
+        private static bool DomainMatches(string normalizedDomain, string pattern)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedDomain) || string.IsNullOrWhiteSpace(pattern))
+            {
+                return false;
+            }
+
+            var normalizedPattern = pattern.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? pattern[4..]
+                : pattern;
+
+            return string.Equals(normalizedDomain, normalizedPattern, StringComparison.Ordinal) ||
+                   normalizedDomain.EndsWith("." + normalizedPattern, StringComparison.Ordinal);
+        }
     }
 }
+
+public sealed record FilterDecision(
+    bool IsAllowed,
+    string Domain,
+    string Reason,
+    string? MatchedRule,
+    string Scope,
+    string Policy)
+{
+    public static FilterDecision Allowed(string domain, string reason, string? matchedRule, string scope, string policy) =>
+        new(true, domain, reason, matchedRule, scope, policy);
+
+    public static FilterDecision Blocked(string domain, string reason, string? matchedRule, string scope, string policy) =>
+        new(false, domain, reason, matchedRule, scope, policy);
+}
+
+internal sealed record RuleMatch(string Pattern, string Scope, string Category);

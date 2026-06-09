@@ -10,6 +10,7 @@ public sealed class ServerEndpoint
     public string Ip { get; init; } = "";
     public int DashboardPort { get; init; }
     public int ProxyPort { get; init; }
+    public bool EnableHttpsInspection { get; init; }
 }
 
 public class ServerEndpointResolver
@@ -54,7 +55,8 @@ public class ServerEndpointResolver
                 {
                     Ip = configuredIp,
                     DashboardPort = defaultDashboardPort,
-                    ProxyPort = defaultProxyPort
+                    ProxyPort = defaultProxyPort,
+                    EnableHttpsInspection = _config.GetValue<bool?>("Server:EnableHttpsInspection") ?? false
                 };
                 return _cachedEndpoint;
             }
@@ -113,6 +115,7 @@ public class ServerEndpointResolver
                 var response = receiveTask.Result;
                 var dashboardPort = defaultDashboardPort;
                 var proxyPort = defaultProxyPort;
+                var enableHttpsInspection = false;
 
                 try
                 {
@@ -127,6 +130,11 @@ public class ServerEndpointResolver
                     {
                         proxyPort = proxyPortParsed;
                     }
+                    if (json.RootElement.TryGetProperty("enableHttpsInspection", out var httpsInspectionProp) &&
+                        (httpsInspectionProp.ValueKind == JsonValueKind.True || httpsInspectionProp.ValueKind == JsonValueKind.False))
+                    {
+                        enableHttpsInspection = httpsInspectionProp.GetBoolean();
+                    }
                 }
                 catch
                 {
@@ -139,7 +147,8 @@ public class ServerEndpointResolver
                 {
                     Ip = ip,
                     DashboardPort = dashboardPort,
-                    ProxyPort = proxyPort
+                    ProxyPort = proxyPort,
+                    EnableHttpsInspection = enableHttpsInspection
                 };
             }
             catch (SocketException ex) when (

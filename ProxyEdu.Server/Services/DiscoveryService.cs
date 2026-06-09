@@ -47,6 +47,7 @@ public class DiscoveryService : BackgroundService
                     protocol = "discovery-v1",
                     dashboardPort = settings.DashboardPort,
                     proxyPort = settings.ProxyPort,
+                    enableHttpsInspection = settings.EnableHttpsInspection,
                     serverName = Environment.MachineName
                 });
 

@@ -117,25 +117,25 @@ public class FiltersController : ControllerBase
         {
             ["social"] = new()
             {
-                new() { Pattern = "facebook.com", Type = FilterType.Blacklist, Description = "Facebook" },
-                new() { Pattern = "instagram.com", Type = FilterType.Blacklist, Description = "Instagram" },
-                new() { Pattern = "tiktok.com", Type = FilterType.Blacklist, Description = "TikTok" },
-                new() { Pattern = "twitter.com", Type = FilterType.Blacklist, Description = "Twitter/X" },
-                new() { Pattern = "snapchat.com", Type = FilterType.Blacklist, Description = "Snapchat" },
+                new() { Pattern = "facebook.com", Type = FilterType.Blacklist, Description = "Facebook", Category = "social" },
+                new() { Pattern = "instagram.com", Type = FilterType.Blacklist, Description = "Instagram", Category = "social" },
+                new() { Pattern = "tiktok.com", Type = FilterType.Blacklist, Description = "TikTok", Category = "social" },
+                new() { Pattern = "twitter.com", Type = FilterType.Blacklist, Description = "Twitter/X", Category = "social" },
+                new() { Pattern = "snapchat.com", Type = FilterType.Blacklist, Description = "Snapchat", Category = "social" },
             },
             ["games"] = new()
             {
-                new() { Pattern = "*.roblox.com", Type = FilterType.Blacklist, Description = "Roblox" },
-                new() { Pattern = "*.friv.com", Type = FilterType.Blacklist, Description = "Friv" },
-                new() { Pattern = "*.miniclip.com", Type = FilterType.Blacklist, Description = "Miniclip" },
-                new() { Pattern = "poki.com", Type = FilterType.Blacklist, Description = "Poki" },
+                new() { Pattern = "*.roblox.com", Type = FilterType.Blacklist, Description = "Roblox", Category = "games" },
+                new() { Pattern = "*.friv.com", Type = FilterType.Blacklist, Description = "Friv", Category = "games" },
+                new() { Pattern = "*.miniclip.com", Type = FilterType.Blacklist, Description = "Miniclip", Category = "games" },
+                new() { Pattern = "poki.com", Type = FilterType.Blacklist, Description = "Poki", Category = "games" },
             },
             ["streaming"] = new()
             {
-                new() { Pattern = "youtube.com", Type = FilterType.Blacklist, Description = "YouTube" },
-                new() { Pattern = "netflix.com", Type = FilterType.Blacklist, Description = "Netflix" },
-                new() { Pattern = "twitch.tv", Type = FilterType.Blacklist, Description = "Twitch" },
-                new() { Pattern = "spotify.com", Type = FilterType.Blacklist, Description = "Spotify" },
+                new() { Pattern = "youtube.com", Type = FilterType.Blacklist, Description = "YouTube", Category = "streaming" },
+                new() { Pattern = "netflix.com", Type = FilterType.Blacklist, Description = "Netflix", Category = "streaming" },
+                new() { Pattern = "twitch.tv", Type = FilterType.Blacklist, Description = "Twitch", Category = "streaming" },
+                new() { Pattern = "spotify.com", Type = FilterType.Blacklist, Description = "Spotify", Category = "streaming" },
             }
         };
 

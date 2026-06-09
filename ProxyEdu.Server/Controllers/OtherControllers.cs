@@ -57,8 +57,13 @@ public class LogsController : ControllerBase
 public class SettingsController : ControllerBase
 {
     private readonly DatabaseService _db;
+    private readonly FilterService _filterService;
 
-    public SettingsController(DatabaseService db) { _db = db; }
+    public SettingsController(DatabaseService db, FilterService filterService)
+    {
+        _db = db;
+        _filterService = filterService;
+    }
 
     [HttpGet]
     public IActionResult Get() => Ok(_db.GetSettings());
@@ -72,6 +77,7 @@ public class SettingsController : ControllerBase
             return BadRequest("Retencao de logs deve estar entre 1 e 3650 dias.");
 
         _db.SaveSettings(settings);
+        _filterService.InvalidateCache();
         return Ok(settings);
     }
 }

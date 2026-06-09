@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.SignalR;
+using ProxyEdu.Server.Hubs;
 using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Models;
 using ProxyEdu.Server.Services;
 using ProxyEdu.Shared.Models;
 using System.IO;
+using System.Net;
 using System.Security.Cryptography.X509Certificates;
 
 namespace ProxyEdu.Server.Services;
@@ -20,17 +23,21 @@ public class ProxyServerService : BackgroundService
     private readonly StudentManagerService _studentManager;
     private readonly FilterService _filterService;
     private readonly DatabaseService _db;
+    private readonly IHubContext<ProxyHub> _hub;
     private readonly ILogger<ProxyServerService> _logger;
+    private ExplicitProxyEndPoint? _explicitEndPoint;
 
     public ProxyServerService(
         StudentManagerService studentManager,
         FilterService filterService,
         DatabaseService db,
+        IHubContext<ProxyHub> hub,
         ILogger<ProxyServerService> logger)
     {
         _studentManager = studentManager;
         _filterService = filterService;
         _db = db;
+        _hub = hub;
         _logger = logger;
         _proxyServer = new ProxyServer();
         ConfigureCertificateManager();
@@ -40,19 +47,28 @@ public class ProxyServerService : BackgroundService
     {
         var settings = _db.GetSettings();
 
-        EnsureRootCertificateTrusted();
-
         _proxyServer.BeforeRequest += OnBeforeRequest;
         _proxyServer.BeforeResponse += OnBeforeResponse;
         _proxyServer.ServerCertificateValidationCallback += OnCertValidation;
 
-        var explicitEndPoint = new ExplicitProxyEndPoint(
-            System.Net.IPAddress.Any, settings.ProxyPort, decryptSsl: true);
+        if (settings.EnableHttpsInspection)
+        {
+            EnsureRootCertificateTrusted();
+        }
 
-        _proxyServer.AddEndPoint(explicitEndPoint);
+        _explicitEndPoint = new ExplicitProxyEndPoint(
+            IPAddress.Any,
+            settings.ProxyPort,
+            decryptSsl: settings.EnableHttpsInspection);
+        _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
+
+        _proxyServer.AddEndPoint(_explicitEndPoint);
         _proxyServer.Start();
 
-        _logger.LogInformation("Proxy started on port {Port}", settings.ProxyPort);
+        _logger.LogInformation(
+            "Proxy started on port {Port}. HTTPS mode: {HttpsMode}",
+            settings.ProxyPort,
+            settings.EnableHttpsInspection ? "inspection" : "tunnel");
 
         await Task.Delay(Timeout.Infinite, stoppingToken);
 
@@ -64,16 +80,86 @@ public class ProxyServerService : BackgroundService
         return _proxyServer.CertificateManager.RootCertificate;
     }
 
+    public bool IsRootCertificateTrusted()
+    {
+        try
+        {
+            return _proxyServer.CertificateManager.RootCertificate != null &&
+                   _proxyServer.CertificateManager.IsRootCertificateMachineTrusted();
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private Task OnBeforeTunnelConnectRequest(object sender, TunnelConnectSessionEventArgs e)
+    {
+        var clientIp = e.ClientRemoteEndPoint.Address.ToString();
+        var (host, port) = ExtractConnectTarget(e);
+        var url = $"https://{host}:{port}";
+        var settings = _db.GetSettings();
+        var certificateTrusted = IsRootCertificateTrusted();
+        var canInspectHttps = settings.EnableHttpsInspection && certificateTrusted;
+
+        e.DecryptSsl = canInspectHttps;
+        _studentManager.TouchHeartbeat(clientIp, url);
+
+        if (_studentManager.IsStudentBlocked(clientIp))
+        {
+            if (canInspectHttps)
+            {
+                return Task.CompletedTask;
+            }
+
+            DenyConnect(e, "Aluno bloqueado");
+            _studentManager.UpdateActivity(clientIp, url, true, 0);
+            LogAccess(clientIp, url, "CONNECT", true, "HTTPS CONNECT block: Aluno bloqueado");
+            NotifyHttpsBlocked(clientIp, host, port, "Aluno bloqueado", "student-block", null);
+            LogProxyDecision(clientIp, host, port, "HTTPS CONNECT", "student-block", null, false, "Aluno bloqueado");
+            return Task.CompletedTask;
+        }
+
+        if (_studentManager.IsStudentBypassFilters(clientIp))
+        {
+            CountAllowedTunnelRequest(clientIp, url, canInspectHttps);
+            LogAccess(clientIp, url, "CONNECT", false, "Liberacao total do aluno");
+            LogProxyDecision(clientIp, host, port, "HTTPS CONNECT", "student-bypass", null, true, "Liberacao total do aluno");
+            return Task.CompletedTask;
+        }
+
+        var decision = _filterService.EvaluateUrl(host, clientIp);
+        if (!decision.IsAllowed)
+        {
+            if (canInspectHttps)
+            {
+                return Task.CompletedTask;
+            }
+
+            DenyConnect(e, decision.Reason);
+            _studentManager.UpdateActivity(clientIp, url, true, 0);
+            LogAccess(clientIp, url, "CONNECT", true, $"HTTPS CONNECT block: {decision.Reason}");
+            NotifyHttpsBlocked(clientIp, host, port, decision.Reason, decision.Policy, decision.MatchedRule);
+            LogProxyDecision(clientIp, host, port, "HTTPS CONNECT", decision.Policy, decision.MatchedRule, false, decision.Reason);
+            return Task.CompletedTask;
+        }
+
+        CountAllowedTunnelRequest(clientIp, url, canInspectHttps);
+        LogAccess(clientIp, url, "CONNECT", false, decision.Reason);
+        LogProxyDecision(clientIp, host, port, "HTTPS CONNECT", decision.Policy, decision.MatchedRule, true, decision.Reason);
+        return Task.CompletedTask;
+    }
+
     private async Task OnBeforeRequest(object sender, SessionEventArgs e)
     {
         var clientIp = e.ClientRemoteEndPoint.Address.ToString();
         var url = e.HttpClient.Request.Url;
         var method = e.HttpClient.Request.Method;
+        var requestType = e.HttpClient.Request.IsHttps ? "HTTPS inspection block" : "HTTP page block";
+        var requestPort = e.HttpClient.Request.IsHttps ? 443 : 80;
         var isConnectTunnel = string.Equals(method, "CONNECT", StringComparison.OrdinalIgnoreCase);
 
-        // For HTTPS, browsers first send CONNECT to establish the tunnel.
-        // If we block at CONNECT, many browsers won't render a readable block page.
-        // Let CONNECT pass and enforce on the next decrypted HTTP request.
+        // CONNECT decisions are handled before opening the HTTPS tunnel.
         if (isConnectTunnel)
         {
             return;
@@ -84,9 +170,16 @@ public class ProxyServerService : BackgroundService
         // Check if student is completely blocked
         if (_studentManager.IsStudentBlocked(clientIp))
         {
-            await ServeBlockPage(e, "Sua internet foi bloqueada pelo professor.");
+            await ServeBlockPage(
+                e,
+                _filterService.ExtractDomain(url),
+                "Aluno bloqueado",
+                "student-block",
+                requestType,
+                clientIp);
             _studentManager.UpdateActivity(clientIp, url, true, 0);
-            LogAccess(clientIp, url, method, true, "Aluno bloqueado");
+            LogAccess(clientIp, url, method, true, $"{requestType}: Aluno bloqueado");
+            LogProxyDecision(clientIp, _filterService.ExtractDomain(url), requestPort, requestType, "student-block", null, false, "Aluno bloqueado");
             return;
         }
 
@@ -94,18 +187,21 @@ public class ProxyServerService : BackgroundService
         if (_studentManager.IsStudentBypassFilters(clientIp))
         {
             LogAccess(clientIp, url, method, false, "Liberacao total do aluno");
+            LogProxyDecision(clientIp, _filterService.ExtractDomain(url), requestPort, requestType, "student-bypass", null, true, "Liberacao total do aluno");
             return;
         }
 
-        // Check URL filter
-        if (!_filterService.IsUrlAllowed(url, clientIp))
+        var decision = _filterService.EvaluateUrl(url, clientIp);
+        if (!decision.IsAllowed)
         {
-            await ServeBlockPage(e, $"Acesso ao site {_filterService.ExtractDomain(url)} foi bloqueado.");
+            await ServeBlockPage(e, decision.Domain, decision.Reason, decision.Policy, requestType, clientIp);
             _studentManager.UpdateActivity(clientIp, url, true, 0);
-            LogAccess(clientIp, url, method, true, "URL bloqueada por filtro");
+            LogAccess(clientIp, url, method, true, $"{requestType}: {decision.Reason}");
+            LogProxyDecision(clientIp, decision.Domain, requestPort, requestType, decision.Policy, decision.MatchedRule, false, decision.Reason);
             return;
         }
 
+        LogProxyDecision(clientIp, decision.Domain, requestPort, e.HttpClient.Request.IsHttps ? "HTTPS inspection allow" : "HTTP allow", decision.Policy, decision.MatchedRule, true, decision.Reason);
         // Allowed requests are counted in OnBeforeResponse, where response size is available.
     }
 
@@ -123,10 +219,21 @@ public class ProxyServerService : BackgroundService
         return Task.CompletedTask;
     }
 
-    private async Task ServeBlockPage(SessionEventArgs e, string message)
+    private async Task ServeBlockPage(
+        SessionEventArgs e,
+        string domain,
+        string reason,
+        string policy,
+        string blockType,
+        string clientIp)
     {
-        var settings = _db.GetSettings();
-        var safeMessage = System.Net.WebUtility.HtmlEncode(message);
+        var student = ResolveStudent(clientIp);
+        var safeDomain = WebUtility.HtmlEncode(domain);
+        var safeReason = WebUtility.HtmlEncode(reason);
+        var safePolicy = WebUtility.HtmlEncode(policy);
+        var safeBlockType = WebUtility.HtmlEncode(blockType);
+        var safeStudent = WebUtility.HtmlEncode(student?.Name ?? clientIp);
+        var safeTimestamp = WebUtility.HtmlEncode(DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
         var html = $@"<!DOCTYPE html>
 <html lang='pt-BR'>
 <head>
@@ -318,29 +425,191 @@ public class ProxyServerService : BackgroundService
       <div class='quote-author'>Nelson Mandela</div>
     </div>
 
-    <div class='domain'>{safeMessage}</div>
+    <div class='domain'>
+      <div><strong>Dominio:</strong> {safeDomain}</div>
+      <div><strong>Motivo:</strong> {safeReason}</div>
+      <div><strong>Politica:</strong> {safePolicy}</div>
+      <div><strong>Tipo:</strong> {safeBlockType}</div>
+      <div><strong>Dispositivo/aluno:</strong> {safeStudent}</div>
+      <div><strong>Horario:</strong> {safeTimestamp}</div>
+    </div>
     <div class='brand'>ProxyEdu - Ambiente Educacional</div>
   </div>
 </body>
 </html>";
 
         e.Ok(html);
+        e.HttpClient.Response.StatusCode = 403;
+        e.HttpClient.Response.StatusDescription = "ProxyEdu: acesso bloqueado";
+    }
+
+    private StudentInfo? ResolveStudent(string ip)
+    {
+        var normalizedIp = IpAddressNormalizer.Normalize(ip);
+        return _db.Students.FindOne(s => s.IpAddress == normalizedIp)
+            ?? _db.Students.FindAll().FirstOrDefault(s => IpAddressNormalizer.EqualsNormalized(s.IpAddress, normalizedIp));
     }
 
     private void LogAccess(string ip, string url, string method, bool blocked, string reason = "")
     {
-        var student = _db.Students.FindOne(s => s.IpAddress == ip);
-        _db.AddLog(new AccessLog
+        var normalizedIp = IpAddressNormalizer.Normalize(ip);
+        _ = Task.Run(() => LogAccessCore(normalizedIp, url, method, blocked, reason));
+    }
+
+    private void LogAccessCore(string normalizedIp, string url, string method, bool blocked, string reason)
+    {
+        try
         {
-            StudentId = student?.Id ?? "",
-            StudentName = student?.Name ?? ip,
-            Url = url,
-            Domain = _filterService.ExtractDomain(url),
-            Method = method,
-            WasBlocked = blocked,
-            BlockReason = reason,
-            StatusCode = blocked ? 403 : 200
+            var student = ResolveStudent(normalizedIp);
+            _db.AddLog(new AccessLog
+            {
+                StudentId = student?.Id ?? "",
+                StudentName = student?.Name ?? normalizedIp,
+                Url = url,
+                Domain = _filterService.ExtractDomain(url),
+                Method = method,
+                WasBlocked = blocked,
+                BlockReason = reason,
+                StatusCode = blocked ? 403 : 200
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao gravar log de acesso do proxy");
+        }
+    }
+
+    private static (string Host, int Port) ExtractConnectTarget(TunnelConnectSessionEventArgs e)
+    {
+        var connectRequest = e.HttpClient.ConnectRequest;
+        var host = connectRequest?.Host ?? string.Empty;
+        var port = connectRequest?.RequestUri?.Port;
+
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            host = connectRequest?.Url ?? string.Empty;
+        }
+
+        host = host.Trim();
+        if (host.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            host.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            var uri = new Uri(host);
+            host = uri.Host;
+            port = uri.Port;
+        }
+        else if (host.StartsWith("[", StringComparison.Ordinal) && host.Contains(']'))
+        {
+            var endBracket = host.IndexOf(']');
+            if (endBracket > 0 && host.Length > endBracket + 2 && int.TryParse(host[(endBracket + 2)..], out var parsedPort))
+            {
+                port = parsedPort;
+            }
+
+            host = host[1..endBracket];
+        }
+        else
+        {
+            var separator = host.LastIndexOf(':');
+            if (separator > 0 && int.TryParse(host[(separator + 1)..], out var parsedPort))
+            {
+                port = parsedPort;
+                host = host[..separator];
+            }
+        }
+
+        host = _filterHostNormalize(host);
+        return (host, port.GetValueOrDefault(443));
+
+        static string _filterHostNormalize(string value)
+        {
+            value = value.Trim().TrimEnd('.').ToLowerInvariant();
+            return value.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? value[4..] : value;
+        }
+    }
+
+    private void CountAllowedTunnelRequest(string clientIp, string url, bool willBeInspected)
+    {
+        if (!willBeInspected)
+        {
+            _studentManager.UpdateActivity(clientIp, url, false, 0);
+        }
+    }
+
+    private static void DenyConnect(TunnelConnectSessionEventArgs e, string reason)
+    {
+        e.DecryptSsl = false;
+        e.DenyConnect = true;
+        e.HttpClient.Response.StatusCode = 403;
+        e.HttpClient.Response.StatusDescription = $"ProxyEdu: acesso HTTPS bloqueado ({reason})";
+        e.HttpClient.Response.ContentType = "text/plain; charset=utf-8";
+    }
+
+    private void LogProxyDecision(
+        string clientIp,
+        string host,
+        int port,
+        string type,
+        string policy,
+        string? matchedRule,
+        bool allowed,
+        string reason)
+    {
+        var normalizedIp = IpAddressNormalizer.Normalize(clientIp);
+        var student = ResolveStudent(normalizedIp);
+
+        _logger.LogInformation(
+            "Proxy decision: host={Host} port={Port} type={Type} policy={Policy} rule={Rule} result={Result} reason={Reason} student={Student} ip={Ip}",
+            host,
+            port,
+            type,
+            policy,
+            matchedRule ?? "-",
+            allowed ? "allowed" : "blocked",
+            reason,
+            student?.Name ?? "-",
+            normalizedIp);
+    }
+
+    private void NotifyHttpsBlocked(
+        string clientIp,
+        string host,
+        int port,
+        string reason,
+        string policy,
+        string? matchedRule)
+    {
+        var normalizedIp = IpAddressNormalizer.Normalize(clientIp);
+        var student = ResolveStudent(normalizedIp);
+        var blockedPagePath = BuildBlockedPagePath(host, reason, policy, student?.Name);
+
+        _ = _hub.Clients.All.SendAsync("HttpsBlocked", new
+        {
+            ip = normalizedIp,
+            host,
+            port,
+            reason,
+            policy,
+            matchedRule,
+            studentId = student?.Id ?? "",
+            studentName = student?.Name ?? "",
+            blockedPagePath,
+            timestamp = DateTime.UtcNow
         });
+    }
+
+    private static string BuildBlockedPagePath(string host, string reason, string policy, string? studentName)
+    {
+        var query = new[]
+        {
+            $"host={Uri.EscapeDataString(host)}",
+            $"reason={Uri.EscapeDataString(reason)}",
+            $"policy={Uri.EscapeDataString(policy)}",
+            "type=https",
+            $"student={Uri.EscapeDataString(studentName ?? string.Empty)}"
+        };
+
+        return "/blocked?" + string.Join("&", query);
     }
 
     public override void Dispose()

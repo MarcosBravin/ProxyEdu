@@ -27,7 +27,10 @@ public class DatabaseService : IDisposable
         var settings = _db.GetCollection<ProxySettings>("settings");
         if (!settings.FindAll().Any())
         {
-            settings.Insert(new ProxySettings());
+            settings.Insert(new ProxySettings
+            {
+                EnableHttpsInspection = _config.GetValue<bool?>("Proxy:EnableHttpsInspection") ?? false
+            });
         }
 
         var groups = _db.GetCollection<StudentGroup>("groups");
