@@ -88,7 +88,8 @@ public class ProxyProtectionService : BackgroundService
             var endpoint = await _endpointResolver.ResolveAsync(cancellationToken);
             
             // Testar connectivity com servidor
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+            using var handler = new HttpClientHandler { UseProxy = false };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(3) };
             try
             {
                 var response = await client.GetAsync(

@@ -77,8 +77,8 @@ public class ServerEndpointResolver
                 return _cachedEndpoint;
             }
 
-            var discovered = await DiscoverAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
-            discovered ??= await TryLocalServerAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
+            var discovered = await TryLocalServerAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
+            discovered ??= await DiscoverAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
             if (discovered is null)
             {
                 throw new InvalidOperationException("Nenhum servidor ProxyEdu encontrado na rede local.");
@@ -225,22 +225,50 @@ public class ServerEndpointResolver
                 Timeout = TimeSpan.FromMilliseconds(800)
             };
 
-            using var response = await http.GetAsync($"http://{ip}:{defaultDashboardPort}/", cancellationToken);
+            using var response = await http.GetAsync($"http://{ip}:{defaultDashboardPort}/api/health", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
+            }
+
+            var dashboardPort = defaultDashboardPort;
+            var proxyPort = defaultProxyPort;
+            var enableHttpsInspection = _config.GetValue<bool?>("Server:EnableHttpsInspection") ?? false;
+
+            try
+            {
+                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                if (json.RootElement.TryGetProperty("dashboardPort", out var dashboardProp) &&
+                    dashboardProp.TryGetInt32(out var dashboardPortParsed))
+                {
+                    dashboardPort = dashboardPortParsed;
+                }
+                if (json.RootElement.TryGetProperty("proxyPort", out var proxyProp) &&
+                    proxyProp.TryGetInt32(out var proxyPortParsed))
+                {
+                    proxyPort = proxyPortParsed;
+                }
+                if (json.RootElement.TryGetProperty("enableHttpsInspection", out var httpsInspectionProp) &&
+                    (httpsInspectionProp.ValueKind == JsonValueKind.True || httpsInspectionProp.ValueKind == JsonValueKind.False))
+                {
+                    enableHttpsInspection = httpsInspectionProp.GetBoolean();
+                }
+            }
+            catch
+            {
+                // Health endpoint reached; keep configured defaults if parsing fails.
             }
 
             _logger.LogInformation("Servidor ProxyEdu localizado por fallback HTTP em {Ip}:{Port}", ip, defaultDashboardPort);
             return new ServerEndpoint
             {
                 Ip = ip,
-                DashboardPort = defaultDashboardPort,
-                ProxyPort = defaultProxyPort,
-                EnableHttpsInspection = _config.GetValue<bool?>("Server:EnableHttpsInspection") ?? false
+                DashboardPort = dashboardPort,
+                ProxyPort = proxyPort,
+                EnableHttpsInspection = enableHttpsInspection
             };
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or IOException)
         {
             return null;
         }
