@@ -148,8 +148,15 @@ public class UsersController : ControllerBase
             return BadRequest("Nao e permitido remover o proprio usuario logado.");
         }
 
-        _authService.DeleteUser(id);
-        return Ok(new { success = true });
+        try
+        {
+            _authService.DeleteUser(id);
+            return Ok(new { success = true });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }
 

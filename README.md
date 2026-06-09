@@ -98,7 +98,9 @@ http://localhost:5000
 Credenciais iniciais:
 
 * usuário: admin
-* senha: admin123
+* senha: valor de `Security:InitialAdminPassword` ou da variável de ambiente `PROXYEDU_INITIAL_ADMIN_PASSWORD`
+
+Se nenhuma senha inicial for configurada antes da primeira execução, o sistema mantém `admin123` por compatibilidade e registra um aviso no log. Troque essa senha imediatamente em ambientes reais.
 
 Perfis de acesso:
 

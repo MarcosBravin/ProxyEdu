@@ -7,9 +7,13 @@ namespace ProxyEdu.Server.Services;
 public class DatabaseService : IDisposable
 {
     private readonly LiteDatabase _db;
+    private readonly ILogger<DatabaseService> _logger;
+    private readonly IConfiguration _config;
 
-    public DatabaseService()
+    public DatabaseService(IConfiguration config, ILogger<DatabaseService> logger)
     {
+        _config = config;
+        _logger = logger;
         var dbPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "ProxyEdu", "data.db");
@@ -37,7 +41,17 @@ public class DatabaseService : IDisposable
         users.EnsureIndex(u => u.Username, unique: true);
         if (!users.FindAll().Any())
         {
-            var (hash, salt) = PasswordHasher.HashPassword("admin123");
+            var initialPassword = _config["Security:InitialAdminPassword"]
+                ?? Environment.GetEnvironmentVariable("PROXYEDU_INITIAL_ADMIN_PASSWORD")
+                ?? "admin123";
+
+            if (initialPassword == "admin123")
+            {
+                _logger.LogWarning(
+                    "Senha inicial padrao do administrador em uso. Configure Security:InitialAdminPassword ou PROXYEDU_INITIAL_ADMIN_PASSWORD antes da primeira execucao.");
+            }
+
+            var (hash, salt) = PasswordHasher.HashPassword(initialPassword);
             users.Insert(new DashboardUser
             {
                 Username = "admin",
