@@ -4,28 +4,48 @@ using ProxyEdu.Server.Services;
 namespace ProxyEdu.Server.Controllers;
 
 [ApiController]
-[Route("api/health")]
+[Route("api/[controller]")]
 public class HealthController : ControllerBase
 {
-    private readonly DatabaseService _db;
+    private static readonly DateTime StartTime = DateTime.UtcNow;
+    private readonly ProxyServerService _proxy;
+    private readonly DatabaseService _database;
 
-    public HealthController(DatabaseService db)
+    public HealthController(ProxyServerService proxy, DatabaseService database)
     {
-        _db = db;
+        _proxy = proxy;
+        _database = database;
     }
 
     [HttpGet]
     public IActionResult Get()
     {
-        var settings = _db.GetSettings();
         return Ok(new
         {
-            status = "ok",
-            serverName = Environment.MachineName,
-            dashboardPort = settings.DashboardPort,
-            proxyPort = settings.ProxyPort,
-            enableHttpsInspection = settings.EnableHttpsInspection,
-            timestamp = DateTime.UtcNow
+            status = "healthy",
+            timestamp = DateTime.UtcNow,
+            uptime = (DateTime.UtcNow - StartTime).TotalSeconds,
+            version = "2.0.0",
+            server = Environment.MachineName
         });
     }
+
+    [HttpGet("ready")]
+    public IActionResult Ready()
+    {
+        try
+        {
+            var runtime = _proxy.GetRuntimeState();
+            var settings = _database.GetSettings();
+            var ready = runtime.IsRunning && _proxy.GetRootCertificate() is not null && settings.ProxyPort is > 0 and <= 65535;
+            return ready
+                ? Ok(new { status = "ready", proxyPort = settings.ProxyPort, timestamp = DateTime.UtcNow })
+                : StatusCode(StatusCodes.Status503ServiceUnavailable, new { status = "not_ready", proxyRunning = runtime.IsRunning, timestamp = DateTime.UtcNow });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { status = "not_ready", reason = ex.GetType().Name, timestamp = DateTime.UtcNow });
+        }
+    }
 }
+

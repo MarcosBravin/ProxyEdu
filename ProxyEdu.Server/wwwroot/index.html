@@ -1280,20 +1280,12 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
               <input class="form-input" type="text" id="blockMessage" value="Acesso bloqueado pelo professor.">
             </div>
             <div class="form-group">
-              <label class="form-label">URL institucional de bloqueio</label>
-              <input class="form-input" type="url" id="blockedRedirectUrl" placeholder="https://minha-escola.com/aviso-bloqueio">
-            </div>
-            <div class="form-group">
               <label class="form-label">Retenção de logs (dias)</label>
               <input class="form-input" type="number" id="logRetention" value="30">
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
               <div class="toggle" id="logAllToggle" onclick="toggleLogAll()"></div>
               <span style="font-size:13px;color:var(--text2)">Registrar todas as requisições</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-              <div class="toggle" id="httpsInspectionToggle" onclick="toggleHttpsInspection()"></div>
-              <span style="font-size:13px;color:var(--text2)">Inspeção HTTPS <span id="httpsInspectionLabel" style="font-family:var(--mono);color:var(--text3)">Desativada</span></span>
             </div>
             <button class="btn btn-primary" onclick="saveSettings()"><span class="material-symbols-rounded icon-btn">save</span> Salvar Configurações</button>
           </div>
@@ -1473,6 +1465,28 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalUpdate">
+  <div class="modal" style="width:640px">
+    <div class="modal-header">
+      <div class="modal-title" id="updateModalTitle">Atualização disponível</div>
+      <button class="modal-close" onclick="closeModal('modalUpdate')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="updateSummary" style="font-size:13px;color:var(--text2);margin-bottom:14px"></div>
+      <pre id="updateChangelog" style="white-space:pre-wrap;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;max-height:260px;overflow:auto;font-size:12px;color:var(--text2)"></pre>
+      <div style="background:var(--surface2);border-radius:4px;height:8px;margin-top:16px;overflow:hidden">
+        <div id="updateProgressBar" style="background:linear-gradient(90deg,var(--accent),var(--accent2));height:8px;width:0%"></div>
+      </div>
+      <div id="updateProgressText" style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-top:8px">Aguardando download</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalUpdate')">Depois</button>
+      <button class="btn btn-primary" id="downloadUpdateBtn" onclick="downloadUpdate()"><span class="material-symbols-rounded icon-btn">download</span> Baixar</button>
+      <button class="btn btn-green" id="installUpdateBtn" onclick="installUpdate()" style="display:none"><span class="material-symbols-rounded icon-btn">system_update_alt</span> Instalar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 <input type="file" id="rulesImportFile" accept=".txt,.csv" style="display:none" />
@@ -1491,6 +1505,7 @@ let studentsPage = 1;
 let usersPage = 1;
 let whitelistPage = 1;
 let blacklistPage = 1;
+let updateStatus = null;
 let importRulesType = 'blacklist';
 const STUDENTS_PAGE_SIZE = 12;
 const USERS_PAGE_SIZE = 10;
@@ -1630,6 +1645,7 @@ function onAuthenticated() {
 
   initSignalR();
   loadAll();
+  checkUpdateNotification();
   updateClock();
 
   if (refreshDashboardTimer) clearInterval(refreshDashboardTimer);
@@ -1648,6 +1664,69 @@ async function loadAll() {
   }
 }
 
+async function checkUpdateNotification() {
+  const status = await api('POST', '/update/check');
+  if (!status) return;
+  updateStatus = status;
+  if (status.state === 'Available') {
+    renderUpdateStatus(status);
+    toast(`Atualização disponível: ${status.latestTag || status.latestVersion}`, 'info');
+    openModal('modalUpdate');
+  }
+}
+
+async function downloadUpdate() {
+  const btn = document.getElementById('downloadUpdateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-rounded icon-btn">hourglass_top</span> Baixando...';
+  pollUpdateProgress();
+  const status = await api('POST', '/update/download');
+  btn.disabled = false;
+  btn.innerHTML = '<span class="material-symbols-rounded icon-btn">download</span> Baixar';
+  if (!status) {
+    toast('Falha ao baixar atualização.', 'error');
+    return;
+  }
+  updateStatus = status;
+  renderUpdateStatus(status);
+  if (status.state === 'Downloaded') {
+    toast('Atualização pronta para instalação.', 'success');
+  }
+}
+
+async function installUpdate() {
+  if (!confirm('Instalar a atualização agora? O ProxyEdu será fechado e reiniciado automaticamente.')) return;
+  const status = await api('POST', '/update/install');
+  if (status) renderUpdateStatus(status);
+  toast('Instalação iniciada. O serviço será reiniciado.', 'info');
+}
+
+async function pollUpdateProgress() {
+  for (let i = 0; i < 180; i++) {
+    const status = await api('GET', '/update');
+    if (!status) return;
+    updateStatus = status;
+    renderUpdateStatus(status);
+    if (!['Downloading', 'Checking'].includes(status.state)) return;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+function renderUpdateStatus(status) {
+  document.getElementById('updateModalTitle').textContent = status.latestTag
+    ? `Atualização ${status.latestTag}`
+    : 'Atualização disponível';
+  document.getElementById('updateSummary').textContent =
+    `Versão atual: ${status.currentVersion || 'AUTO'} | Nova versão: ${status.latestVersion || status.latestTag || '—'} | Publicada em: ${status.publishedAtUtc ? new Date(status.publishedAtUtc).toLocaleString('pt-BR') : '—'}`;
+  document.getElementById('updateChangelog').textContent = status.changelog || 'Sem changelog informado.';
+  document.getElementById('updateProgressBar').style.width = `${status.progressPercent || 0}%`;
+  document.getElementById('updateProgressText').textContent =
+    status.state === 'Downloading'
+      ? `${status.progressPercent || 0}% (${formatBytes(status.downloadedBytes)} de ${status.totalBytes ? formatBytes(status.totalBytes) : 'tamanho desconhecido'})`
+      : status.message || 'Aguardando download';
+  document.getElementById('installUpdateBtn').style.display = status.state === 'Downloaded' ? 'inline-flex' : 'none';
+}
+
 // ─── SIGNALR ──────────────────────────────────────────────────
 function initSignalR() {
   const connection = new signalR.HubConnectionBuilder()
@@ -1660,17 +1739,17 @@ function initSignalR() {
     updateMonitorCard(student);
   });
 
+// Novo: recebe lote de atividades a cada 2 segundos (otimizado)
+  connection.on('StudentActivityBatch', (batch) => {
+    if (!batch || !batch.length) return;
+    for (const data of batch) {
+      updateStudentUrl(data.studentId, data.url);
+    }
+  });
+
+  // Compatibilidade: ainda aceita mensagens individuais
   connection.on('StudentActivity', (data) => {
     updateStudentUrl(data.studentId, data.url);
-  });
-
-  connection.on('HttpsBlocked', (data) => {
-    if (data.studentId) updateStudentUrl(data.studentId, `https://${data.host}:${data.port}`);
-    toast(`HTTPS bloqueado: ${data.host} - ${data.reason} (${data.blockDestination || 'CONNECT blocked only'})`, 'info');
-  });
-
-  connection.on('HttpsBlockNotificationFailed', (data) => {
-    toast(`HTTPS bloqueado: ${data.host} - pagina de aviso nao abriu no cliente (${data.blockDestination})`, 'warning');
   });
 
   connection.on('AllStudentsUpdated', () => {
@@ -1718,7 +1797,7 @@ function loadMockData() {
     { id:'g1', name:'Turma A', color:'#3b82f6' },
     { id:'g2', name:'Turma B', color:'#22c55e' },
   ];
-  settings = { proxyPort:8888, dashboardPort:5000, whitelistMode:false, logAllRequests:true, maxLogRetentionDays:30, welcomeMessage:'Acesso bloqueado pelo professor.', enableHttpsInspection:false, blockedRedirectUrl:'' };
+  settings = { proxyPort:8888, dashboardPort:5000, whitelistMode:false, logAllRequests:true, maxLogRetentionDays:30, welcomeMessage:'Acesso bloqueado pelo professor.' };
 
   renderAll();
   toast('Demo mode ativo — conecte o servidor para dados reais', 'info');
@@ -2462,22 +2541,15 @@ function renderSettings() {
   const pp = document.getElementById('proxyPort');
   const dp = document.getElementById('dashboardPort');
   const bm = document.getElementById('blockMessage');
-  const br = document.getElementById('blockedRedirectUrl');
   const lr = document.getElementById('logRetention');
   const la = document.getElementById('logAllToggle');
   const wm = document.getElementById('whitelistModeToggle');
-  const hi = document.getElementById('httpsInspectionToggle');
 
-  if (pp) pp.value = settings.proxyPort || 8888;
-  if (dp) dp.value = settings.dashboardPort || 5000;
+  if (pp) { pp.value = settings.proxyPort || 8888; pp.disabled = true; pp.title = 'A porta do proxy é definida na instalação e requer reinício planejado.'; }
+  if (dp) { dp.value = settings.dashboardPort || 5000; dp.disabled = true; dp.title = 'A porta do dashboard é definida na instalação e requer reinício planejado.'; }
   if (bm) bm.value = settings.welcomeMessage || '';
-  if (br) br.value = settings.blockedRedirectUrl || '';
   if (lr) lr.value = settings.maxLogRetentionDays || 30;
   if (la) { if (settings.logAllRequests) la.classList.add('on'); else la.classList.remove('on'); }
-  if (hi) {
-    if (settings.enableHttpsInspection) { hi.classList.add('on'); document.getElementById('httpsInspectionLabel').textContent = 'Ativada'; }
-    else { hi.classList.remove('on'); document.getElementById('httpsInspectionLabel').textContent = 'Desativada'; }
-  }
   if (wm) {
     if (settings.whitelistMode) { wm.classList.add('on'); document.getElementById('whitelistModeLabel').textContent = 'Ativado'; }
     else { wm.classList.remove('on'); document.getElementById('whitelistModeLabel').textContent = 'Desativado'; }
@@ -2490,25 +2562,20 @@ async function saveSettings() {
     proxyPort: parseInt(document.getElementById('proxyPort').value),
     dashboardPort: parseInt(document.getElementById('dashboardPort').value),
     welcomeMessage: document.getElementById('blockMessage').value,
-    blockedRedirectUrl: document.getElementById('blockedRedirectUrl').value.trim(),
     maxLogRetentionDays: parseInt(document.getElementById('logRetention').value),
-    logAllRequests: document.getElementById('logAllToggle').classList.contains('on'),
-    enableHttpsInspection: document.getElementById('httpsInspectionToggle').classList.contains('on'),
   };
   const data = await api('PUT', '/settings', updated);
-  if (data) settings = data;
+  if (!data) {
+    toast('Não foi possível salvar as configurações.', 'error');
+    return;
+  }
+  settings = data;
   toast('Configurações salvas', 'success');
 }
 
 function toggleLogAll() {
   const el = document.getElementById('logAllToggle');
   el.classList.toggle('on');
-}
-
-function toggleHttpsInspection() {
-  const el = document.getElementById('httpsInspectionToggle');
-  el.classList.toggle('on');
-  document.getElementById('httpsInspectionLabel').textContent = el.classList.contains('on') ? 'Ativada' : 'Desativada';
 }
 
 async function toggleWhitelistMode() {
@@ -2719,31 +2786,17 @@ let serverRefreshTimer = null;
 async function loadServerStatus() {
   const data = await api('GET', '/serverstatus');
   if (!data) {
-    // Demo mode - show sample data
-    renderServerStatus({
-      cpuUsagePercent: 35 + Math.random() * 20,
-      memoryUsageMB: 512 + Math.random() * 256,
-      memoryTotalMB: 2048,
-      memoryUsagePercent: 30 + Math.random() * 15,
-      activeConnections: Math.floor(5 + Math.random() * 20),
-      connectedStudents: students.filter(s => s.isConnected).length,
-      totalStudents: students.length,
-      uptimeSeconds: 3600 + Math.floor(Math.random() * 7200),
-      networkBytesSent: 1024 * 1024 * 50,
-      networkBytesReceived: 1024 * 1024 * 200,
-      processInfo: {
-        id: 1234,
-        threadCount: 15 + Math.floor(Math.random() * 10),
-        handleCount: 200 + Math.floor(Math.random() * 100),
-        workingSetMB: 120 + Math.floor(Math.random() * 50),
-        privateMemoryMB: 80 + Math.floor(Math.random() * 30)
-      },
-      alerts: [],
-      timestamp: new Date().toISOString()
-    });
+    renderServerStatusUnavailable();
     return;
   }
   renderServerStatus(data);
+}
+
+function renderServerStatusUnavailable() {
+  ['serverCpu','serverMemory','serverConnections','serverStudents'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('serverStatusTime').textContent = 'Não foi possível obter o status. Verifique o serviço e a rede.';
+  document.getElementById('serverConnections').title = 'Nenhuma métrica estimada é exibida quando o servidor não responde.';
+  renderServerAlerts([{ type: 'Critical', message: 'Status indisponível: o servidor não respondeu à consulta de monitoramento.' }]);
 }
 
 function renderServerStatus(data) {
@@ -2752,6 +2805,7 @@ function renderServerStatus(data) {
   document.getElementById('serverMemory').textContent = data.memoryUsagePercent.toFixed(1) + '%';
   document.getElementById('serverMemorySub').textContent = formatBytes(data.memoryUsageMB * 1024 * 1024) + ' / ' + formatBytes(data.memoryTotalMB * 1024 * 1024);
   document.getElementById('serverConnections').textContent = data.activeConnections;
+  document.getElementById('serverConnections').title = `TCP proxy: ${data.proxyTcpEstablishedConnections ?? '—'} | Titanium: ${data.titaniumActiveSessions ?? '—'} | SignalR: ${data.signalRConnections ?? '—'}`;
   document.getElementById('serverStudents').textContent = data.connectedStudents;
   document.getElementById('serverStudentsSub').textContent = 'de ' + data.totalStudents + ' conectados';
 

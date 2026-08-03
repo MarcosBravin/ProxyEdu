@@ -41,7 +41,6 @@ public class FilterRule
     public string Pattern { get; set; } = "";
     public FilterType Type { get; set; } = FilterType.Blacklist;
     public string Description { get; set; } = "";
-    public string Category { get; set; } = "";
     public bool IsActive { get; set; } = true;
     public string CreatedBy { get; set; } = "professor";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -73,8 +72,6 @@ public class ProxySettings
     public int MaxLogRetentionDays { get; set; } = 30;
     public string WelcomeMessage { get; set; } = "Acesso bloqueado pelo professor.";
     public bool ShowBlockPage { get; set; } = true;
-    public bool EnableHttpsInspection { get; set; } = false;
-    public string BlockedRedirectUrl { get; set; } = "";
 }
 
 public class DashboardStats
@@ -119,6 +116,11 @@ public class ServerHealthStats
     public long MemoryTotalMB { get; set; }
     public double MemoryUsagePercent { get; set; }
     public int ActiveConnections { get; set; }
+    public int ProxyTcpEstablishedConnections { get; set; }
+    public int TitaniumActiveSessions { get; set; }
+    public int SignalRConnections { get; set; }
+    public int ProxyTcpFinWait2Connections { get; set; }
+    public int ProxyTcpCloseWaitConnections { get; set; }
     public long TotalRequestsProcessed { get; set; }
     public long NetworkBytesSent { get; set; }
     public long NetworkBytesReceived { get; set; }
@@ -126,9 +128,6 @@ public class ServerHealthStats
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public int ConnectedStudents { get; set; }
     public int TotalStudents { get; set; }
-    public bool HttpsInspectionEnabled { get; set; }
-    public bool RootCertificateTrusted { get; set; }
-    public string HttpsProxyMode { get; set; } = "Tunnel";
     public ProcessInfo ProcessInfo { get; set; } = new();
     public List<ServerAlert> Alerts { get; set; } = new();
 }

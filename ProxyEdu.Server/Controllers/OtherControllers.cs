@@ -20,24 +20,8 @@ public class LogsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 200);
-
-        var query = _db.Logs.FindAll().AsQueryable();
-        if (!string.IsNullOrEmpty(studentId))
-            query = query.Where(l => l.StudentId == studentId);
-        if (!string.IsNullOrEmpty(domain))
-            query = query.Where(l => l.Domain.Contains(domain));
-        if (blocked.HasValue)
-            query = query.Where(l => l.WasBlocked == blocked.Value);
-
-        var total = query.Count();
-        var items = query
-            .OrderByDescending(l => l.Timestamp)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-
+        // Efficient query using indexed LiteDB queries instead of loading all in memory
+        var (items, total) = _db.QueryLogs(studentId, domain, blocked, page, pageSize);
         return Ok(new { total, page, pageSize, items });
     }
 
@@ -57,13 +41,8 @@ public class LogsController : ControllerBase
 public class SettingsController : ControllerBase
 {
     private readonly DatabaseService _db;
-    private readonly FilterService _filterService;
 
-    public SettingsController(DatabaseService db, FilterService filterService)
-    {
-        _db = db;
-        _filterService = filterService;
-    }
+    public SettingsController(DatabaseService db) { _db = db; }
 
     [HttpGet]
     public IActionResult Get() => Ok(_db.GetSettings());
@@ -71,20 +50,23 @@ public class SettingsController : ControllerBase
     [HttpPut]
     public IActionResult Update([FromBody] ProxySettings settings)
     {
-        if (settings.ProxyPort is < 1 or > 65535 || settings.DashboardPort is < 1 or > 65535)
-            return BadRequest("Portas devem estar entre 1 e 65535.");
-        if (settings.MaxLogRetentionDays is < 1 or > 3650)
-            return BadRequest("Retencao de logs deve estar entre 1 e 3650 dias.");
-        settings.BlockedRedirectUrl = settings.BlockedRedirectUrl?.Trim() ?? "";
-        if (!string.IsNullOrWhiteSpace(settings.BlockedRedirectUrl) &&
-            (!Uri.TryCreate(settings.BlockedRedirectUrl, UriKind.Absolute, out var redirectUri) ||
-             (redirectUri.Scheme != Uri.UriSchemeHttp && redirectUri.Scheme != Uri.UriSchemeHttps)))
+        var validationError = ProxySettingsValidator.Validate(settings);
+        if (validationError is not null)
         {
-            return BadRequest("URL institucional de bloqueio deve ser http ou https.");
+            return BadRequest(new { error = validationError });
         }
 
+        var current = _db.GetSettings();
+        if (settings.ProxyPort != current.ProxyPort || settings.DashboardPort != current.DashboardPort)
+        {
+            return Conflict(new
+            {
+                error = "As portas são definidas no início do serviço e não podem ser alteradas pelo painel em execução.",
+                currentProxyPort = current.ProxyPort,
+                currentDashboardPort = current.DashboardPort
+            });
+        }
         _db.SaveSettings(settings);
-        _filterService.InvalidateCache();
         return Ok(settings);
     }
 }
@@ -103,13 +85,7 @@ public class GroupsController : ControllerBase
     [HttpPost]
     public IActionResult Create([FromBody] StudentGroup group)
     {
-        if (string.IsNullOrWhiteSpace(group.Name))
-            return BadRequest("Nome do grupo e obrigatorio.");
-        if (_db.Groups.Exists(g => g.Name == group.Name.Trim()))
-            return BadRequest("Grupo ja existe.");
-
         group.Id = Guid.NewGuid().ToString();
-        group.Name = group.Name.Trim();
         _db.Groups.Insert(group);
         return Ok(group);
     }
@@ -117,7 +93,7 @@ public class GroupsController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete(string id)
     {
-        if (!_db.Groups.Delete(id)) return NotFound();
+        _db.Groups.Delete(id);
         return Ok(new { success = true });
     }
 }

@@ -5,10 +5,20 @@ namespace ProxyEdu.Client.Services;
 public class HeartbeatService : BackgroundService
 {
     private readonly ServerEndpointResolver _endpointResolver;
+    private readonly ILogger<HeartbeatService> _logger;
+    private readonly ServerApiClient _serverApi;
 
-    public HeartbeatService(ServerEndpointResolver endpointResolver)
+    // Exponential backoff for retry
+    private int _retryDelayMs = 2000;
+    private const int MaxRetryDelayMs = 30000;
+    private const int InitialRetryDelayMs = 2000;
+    private const int NormalHeartbeatIntervalMs = 5000;
+
+    public HeartbeatService(ServerEndpointResolver endpointResolver, ServerApiClient serverApi, ILogger<HeartbeatService> logger)
     {
         _endpointResolver = endpointResolver;
+        _logger = logger;
+        _serverApi = serverApi;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -18,23 +28,29 @@ public class HeartbeatService : BackgroundService
             try
             {
                 var endpoint = await _endpointResolver.ResolveAsync(stoppingToken);
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                var payload = JsonConvert.SerializeObject(new
+                var payload = new
                 {
                     ip = GetLocalIp(),
                     currentUrl = GetActiveWindow(),
                     timestamp = DateTime.UtcNow
-                });
-                await client.PostAsync(
-                    $"http://{endpoint.Ip}:{endpoint.DashboardPort}/api/students/heartbeat",
-                    new StringContent(payload, System.Text.Encoding.UTF8, "application/json"));
-            }
-            catch
-            {
-                _endpointResolver.Invalidate();
-            }
+                };
+                await _serverApi.PostAsync(endpoint, "/api/students/heartbeat", payload, stoppingToken);
 
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                // Reset backoff on success
+                _retryDelayMs = InitialRetryDelayMs;
+                await Task.Delay(NormalHeartbeatIntervalMs, stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug("Heartbeat falhou: {Message}", ex.Message);
+                _endpointResolver.Invalidate();
+
+                // Exponential backoff on failure
+                var delay = TimeSpan.FromMilliseconds(_retryDelayMs);
+                _logger.LogDebug("Heartbeat backoff: aguardando {Delay}ms", _retryDelayMs);
+                await Task.Delay(delay, stoppingToken);
+                _retryDelayMs = Math.Min((int)(_retryDelayMs * 1.5), MaxRetryDelayMs);
+            }
         }
     }
 

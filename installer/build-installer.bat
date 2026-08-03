@@ -86,9 +86,9 @@ if "%MAKENSIS_EXE%"=="" (
 )
 
 echo Compilando instalador com: %MAKENSIS_EXE%
-"%MAKENSIS_EXE%" /DAPP_VERSION=%APP_VERSION% /DAPP_FILE_VERSION=%APP_FILE_VERSION% "%NSI_FILE%"
+"%MAKENSIS_EXE%" /V2 "/DAPP_VERSION=%APP_VERSION%" "/DAPP_FILE_VERSION=%APP_FILE_VERSION%" "%NSI_FILE%"
 if %errorlevel% neq 0 (
-  echo ERRO: falha ao compilar o instalador.
+  echo ERRO: falha ao compilar o instalador. Verifique a saida acima.
   exit /b 1
 )
 

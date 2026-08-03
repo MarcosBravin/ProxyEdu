@@ -14,6 +14,7 @@ public class DashboardUser
     public string PasswordSalt { get; set; } = "";
     public DashboardUserRole Role { get; set; } = DashboardUserRole.Professor;
     public bool IsActive { get; set; } = true;
+    public bool IsPasswordChangeRequired { get; set; } = false;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAtUtc { get; set; }
 }
@@ -23,4 +24,5 @@ public sealed class AuthenticatedUser
     public string Id { get; init; } = "";
     public string Username { get; init; } = "";
     public DashboardUserRole Role { get; init; }
+    public bool IsPasswordChangeRequired { get; init; } = false;
 }

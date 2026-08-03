@@ -1,6 +1,5 @@
 using ProxyEdu.Shared.Models;
 using System.Diagnostics;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 
@@ -10,11 +9,19 @@ public class ServerHealthService
 {
     private readonly Process _currentProcess;
     private readonly DateTime _startTime;
+    private readonly OwnedTcpConnectionInspector _tcpInspector;
+    private readonly ProxyServerService _proxy;
+    private readonly ProxyHubConnectionRegistry _hubConnections;
+    private readonly DatabaseService _db;
 
-    public ServerHealthService()
+    public ServerHealthService(OwnedTcpConnectionInspector tcpInspector, ProxyServerService proxy, ProxyHubConnectionRegistry hubConnections, DatabaseService db)
     {
         _currentProcess = Process.GetCurrentProcess();
         _startTime = DateTime.UtcNow;
+        _tcpInspector = tcpInspector;
+        _proxy = proxy;
+        _hubConnections = hubConnections;
+        _db = db;
     }
 
     public ServerHealthStats GetHealthStats()
@@ -33,6 +40,11 @@ public class ServerHealthService
             MemoryTotalMB = memoryInfo.totalMB,
             MemoryUsagePercent = memoryInfo.percent,
             ActiveConnections = connectionInfo.activeConnections,
+            ProxyTcpEstablishedConnections = connectionInfo.proxyTcpEstablished,
+            TitaniumActiveSessions = connectionInfo.titaniumSessions,
+            SignalRConnections = connectionInfo.signalRConnections,
+            ProxyTcpFinWait2Connections = connectionInfo.proxyFinWait2,
+            ProxyTcpCloseWaitConnections = connectionInfo.proxyCloseWait,
             TotalRequestsProcessed = connectionInfo.totalRequests,
             NetworkBytesSent = networkInfo.bytesSent,
             NetworkBytesReceived = networkInfo.bytesReceived,
@@ -152,21 +164,15 @@ public class ServerHealthService
         }
     }
 
-    private (int activeConnections, long totalRequests) GetConnectionInfo()
+    private (int activeConnections, int proxyTcpEstablished, int titaniumSessions, int signalRConnections, int proxyFinWait2, int proxyCloseWait, long totalRequests) GetConnectionInfo()
     {
-        try
-        {
-            // Count established TCP connections
-            var tcpConnections = IPGlobalProperties.GetIPGlobalProperties()
-                .GetActiveTcpConnections()
-                .Count(c => c.State == TcpState.Established);
-
-            return (tcpConnections, 0);
-        }
-        catch
-        {
-            return (0, 0);
-        }
+        var runtime = _proxy.GetRuntimeState();
+        var tcp = _tcpInspector.GetSnapshot(_currentProcess.Id, _db.GetSettings().ProxyPort);
+        // Titanium sessions and TCP :8888 describe largely the same proxy leg. The
+        // aggregate keeps TCP and SignalR only to avoid double-counting that leg.
+        var aggregate = Math.Max(0, tcp.ProxyPortEstablished) + _hubConnections.Count;
+        return (aggregate, tcp.ProxyPortEstablished, runtime.ClientConnections, _hubConnections.Count,
+            tcp.ProxyPortFinWait2, tcp.ProxyPortCloseWait, 0);
     }
 
     private List<ServerAlert> GenerateAlerts(ServerHealthStats stats)

@@ -23,11 +23,7 @@ public class FiltersController : ControllerBase
     [HttpPost]
     public IActionResult Create([FromBody] FilterRule rule)
     {
-        if (string.IsNullOrWhiteSpace(rule.Pattern))
-            return BadRequest("Padrao do filtro e obrigatorio.");
-
         rule.Id = Guid.NewGuid().ToString();
-        rule.Pattern = rule.Pattern.Trim();
         rule.CreatedAt = DateTime.UtcNow;
         return Ok(_filter.AddRule(rule));
     }
@@ -35,13 +31,7 @@ public class FiltersController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult Update(string id, [FromBody] FilterRule rule)
     {
-        if (string.IsNullOrWhiteSpace(rule.Pattern))
-            return BadRequest("Padrao do filtro e obrigatorio.");
-        if (_db.FilterRules.FindById(id) is null)
-            return NotFound();
-
         rule.Id = id;
-        rule.Pattern = rule.Pattern.Trim();
         _filter.UpdateRule(rule);
         return Ok(rule);
     }
@@ -49,14 +39,13 @@ public class FiltersController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete(string id)
     {
-        if (!_filter.DeleteRule(id)) return NotFound();
+        _filter.DeleteRule(id);
         return Ok(new { success = true });
     }
 
     [HttpPost("{id}/toggle")]
     public IActionResult Toggle(string id)
     {
-        if (_db.FilterRules.FindById(id) is null) return NotFound();
         _filter.ToggleRule(id);
         return Ok(new { success = true });
     }
@@ -117,25 +106,25 @@ public class FiltersController : ControllerBase
         {
             ["social"] = new()
             {
-                new() { Pattern = "facebook.com", Type = FilterType.Blacklist, Description = "Facebook", Category = "social" },
-                new() { Pattern = "instagram.com", Type = FilterType.Blacklist, Description = "Instagram", Category = "social" },
-                new() { Pattern = "tiktok.com", Type = FilterType.Blacklist, Description = "TikTok", Category = "social" },
-                new() { Pattern = "twitter.com", Type = FilterType.Blacklist, Description = "Twitter/X", Category = "social" },
-                new() { Pattern = "snapchat.com", Type = FilterType.Blacklist, Description = "Snapchat", Category = "social" },
+                new() { Pattern = "facebook.com", Type = FilterType.Blacklist, Description = "Facebook" },
+                new() { Pattern = "instagram.com", Type = FilterType.Blacklist, Description = "Instagram" },
+                new() { Pattern = "tiktok.com", Type = FilterType.Blacklist, Description = "TikTok" },
+                new() { Pattern = "twitter.com", Type = FilterType.Blacklist, Description = "Twitter/X" },
+                new() { Pattern = "snapchat.com", Type = FilterType.Blacklist, Description = "Snapchat" },
             },
             ["games"] = new()
             {
-                new() { Pattern = "*.roblox.com", Type = FilterType.Blacklist, Description = "Roblox", Category = "games" },
-                new() { Pattern = "*.friv.com", Type = FilterType.Blacklist, Description = "Friv", Category = "games" },
-                new() { Pattern = "*.miniclip.com", Type = FilterType.Blacklist, Description = "Miniclip", Category = "games" },
-                new() { Pattern = "poki.com", Type = FilterType.Blacklist, Description = "Poki", Category = "games" },
+                new() { Pattern = "*.roblox.com", Type = FilterType.Blacklist, Description = "Roblox" },
+                new() { Pattern = "*.friv.com", Type = FilterType.Blacklist, Description = "Friv" },
+                new() { Pattern = "*.miniclip.com", Type = FilterType.Blacklist, Description = "Miniclip" },
+                new() { Pattern = "poki.com", Type = FilterType.Blacklist, Description = "Poki" },
             },
             ["streaming"] = new()
             {
-                new() { Pattern = "youtube.com", Type = FilterType.Blacklist, Description = "YouTube", Category = "streaming" },
-                new() { Pattern = "netflix.com", Type = FilterType.Blacklist, Description = "Netflix", Category = "streaming" },
-                new() { Pattern = "twitch.tv", Type = FilterType.Blacklist, Description = "Twitch", Category = "streaming" },
-                new() { Pattern = "spotify.com", Type = FilterType.Blacklist, Description = "Spotify", Category = "streaming" },
+                new() { Pattern = "youtube.com", Type = FilterType.Blacklist, Description = "YouTube" },
+                new() { Pattern = "netflix.com", Type = FilterType.Blacklist, Description = "Netflix" },
+                new() { Pattern = "twitch.tv", Type = FilterType.Blacklist, Description = "Twitch" },
+                new() { Pattern = "spotify.com", Type = FilterType.Blacklist, Description = "Spotify" },
             }
         };
 

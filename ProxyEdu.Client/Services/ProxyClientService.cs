@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Win32;
-using Newtonsoft.Json;
-using System.Diagnostics;
+using ProxyEdu.Shared.Utils;
 using System.Management;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 
 namespace ProxyEdu.Client.Services;
@@ -13,25 +10,42 @@ public class ProxyClientService : BackgroundService
 {
     private readonly ILogger<ProxyClientService> _logger;
     private readonly ServerEndpointResolver _endpointResolver;
+    private readonly ServerApiClient _serverApi;
+    private readonly NetworkConnectivityMonitor _networkMonitor;
+    private readonly bool _failClosed;
     private HubConnection? _hubConnection;
     private string? _currentHubUrl;
     private string? _currentProxyAddress;
     private string? _trustedRootThumbprint;
-    private ServerEndpoint? _currentEndpoint;
-    private DateTime _lastHttpsBlockNotificationAt = DateTime.MinValue;
+    private string? _lastCertificateEndpoint;
+    private DateTime _lastCertificateCheckUtc;
+    private readonly string? _pinnedRootThumbprint;
+    private bool _warnedUnpinnedCertificate;
     private bool _proxyEnabled;
+    private int _needsRegistration = 1;
+    private long _lastNetworkGeneration = -1;
 
-    [DllImport("wininet.dll")]
-    private static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);
-    private const int INTERNET_OPTION_SETTINGS_CHANGED = 39;
-    private const int INTERNET_OPTION_REFRESH = 37;
+    // Exponential backoff for retry
+    private int _retryDelayMs = 2000;
+    private const int MaxRetryDelayMs = 60000;
+    private const int InitialRetryDelayMs = 2000;
 
     public ProxyClientService(
         ILogger<ProxyClientService> logger,
-        ServerEndpointResolver endpointResolver)
+        ServerEndpointResolver endpointResolver,
+        ServerApiClient serverApi,
+        NetworkConnectivityMonitor networkMonitor,
+        IConfiguration configuration)
     {
         _logger = logger;
         _endpointResolver = endpointResolver;
+        _serverApi = serverApi;
+        _networkMonitor = networkMonitor;
+        _failClosed = configuration.GetValue<bool?>("Protection:FailClosed") ?? false;
+        _pinnedRootThumbprint = NormalizeThumbprint(configuration["Server:RootCertificateThumbprint"]);
+        var (existingProxy, existingEnabled) = WindowsProxyManager.GetCurrentProxySettings();
+        _currentProxyAddress = existingProxy;
+        _proxyEnabled = existingEnabled && !string.IsNullOrWhiteSpace(existingProxy);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -40,24 +54,49 @@ public class ProxyClientService : BackgroundService
         {
             try
             {
+                var networkGeneration = _networkMonitor.Generation;
+                if (networkGeneration != _lastNetworkGeneration)
+                {
+                    _lastNetworkGeneration = networkGeneration;
+                    _endpointResolver.Invalidate();
+                    await DisposeHubAsync(stoppingToken);
+                    _logger.LogInformation("Network generation {Generation}; control connection will be recreated", networkGeneration);
+                }
                 var endpoint = await _endpointResolver.ResolveAsync(stoppingToken);
-                _currentEndpoint = endpoint;
                 var proxyAddress = $"{endpoint.Ip}:{endpoint.ProxyPort}";
 
-                if (endpoint.EnableHttpsInspection)
-                {
-                    await EnsureProxyRootCertificateTrustedAsync(endpoint, stoppingToken);
-                }
+                await EnsureProxyRootCertificateTrustedAsync(endpoint, stoppingToken);
                 await EnsureHubConnectionAsync(endpoint, stoppingToken);
 
                 if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Disconnected)
                 {
                     await _hubConnection.StartAsync(stoppingToken);
-                    await RegisterWithServer(endpoint);
+                    Interlocked.Exchange(ref _needsRegistration, 1);
                 }
 
                 if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Connected)
                 {
+                    if (Volatile.Read(ref _needsRegistration) == 1)
+                    {
+                        await RegisterWithServer(endpoint, stoppingToken);
+                        Interlocked.Exchange(ref _needsRegistration, 0);
+                    }
+                    EnsureProxyEnabled(proxyAddress);
+                    // Reset backoff on successful connection
+                    _retryDelayMs = InitialRetryDelayMs;
+                }
+
+                else if (networkGeneration != _networkMonitor.Generation)
+                {
+                    _logger.LogInformation("Rede mudou durante a conexão; reconstruindo canal de controle");
+                    _endpointResolver.Invalidate();
+                    await DisposeHubAsync(stoppingToken);
+                }
+                else if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Reconnecting)
+                {
+                    // Durante reconexão automática (ex: após suspensão), manter proxy ativo
+                    // para evitar que o aluno perca acesso enquanto o hub reconecta.
+                    _logger.LogInformation("Hub em reconexão, mantendo proxy ativo");
                     EnsureProxyEnabled(proxyAddress);
                 }
                 else
@@ -84,10 +123,16 @@ public class ProxyClientService : BackgroundService
                 DisableProxyFailOpen();
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            // Exponential backoff: 2s, 4s, 8s, 16s, 32s, max 60s
+            var delay = TimeSpan.FromMilliseconds(_retryDelayMs + Random.Shared.Next(0, 500));
+            _logger.LogDebug("Aguardando {Delay}ms antes da próxima tentativa", _retryDelayMs);
+            await Task.Delay(delay, stoppingToken);
+
+            // Increase backoff for next attempt (capped at MaxRetryDelayMs)
+            _retryDelayMs = Math.Min((int)(_retryDelayMs * 1.5), MaxRetryDelayMs);
         }
 
-        SetWindowsProxy("", false);
+        WindowsProxyManager.SetProxy("", false);
     }
 
     private void EnsureProxyEnabled(string proxyAddress)
@@ -97,22 +142,36 @@ public class ProxyClientService : BackgroundService
             return;
         }
 
-        SetWindowsProxy(proxyAddress, true);
+        WindowsProxyManager.SetProxy(proxyAddress, true);
         _currentProxyAddress = proxyAddress;
         _proxyEnabled = true;
+        // Sincronizar com o coordenador global para o ProxyProtectionService
+        ProxyStateCoordinator.SetProxyEnabled(proxyAddress);
         _logger.LogInformation("Proxy configurado: {ProxyAddress}", proxyAddress);
     }
 
     private void DisableProxyFailOpen()
     {
+        if (_failClosed)
+        {
+            if (!string.IsNullOrWhiteSpace(_currentProxyAddress))
+            {
+                WindowsProxyManager.SetProxy(_currentProxyAddress, true);
+                ProxyStateCoordinator.SetProxyEnabled(_currentProxyAddress);
+            }
+            _logger.LogWarning("Servidor indisponível: mantendo proxy ativo (modo fail-closed).");
+            return;
+        }
         if (!_proxyEnabled && string.IsNullOrEmpty(_currentProxyAddress))
         {
             return;
         }
 
-        SetWindowsProxy("", false);
+        WindowsProxyManager.SetProxy("", false);
         _proxyEnabled = false;
         _currentProxyAddress = null;
+        // Sincronizar com o coordenador global para o ProxyProtectionService
+        ProxyStateCoordinator.SetProxyDisabled("Servidor offline");
         _logger.LogWarning("Servidor offline: proxy desativado (modo fail-open, acesso liberado).");
     }
 
@@ -126,13 +185,14 @@ public class ProxyClientService : BackgroundService
 
         if (_hubConnection is not null)
         {
-            await _hubConnection.StopAsync(cancellationToken);
-            await _hubConnection.DisposeAsync();
+            await DisposeHubAsync(cancellationToken);
         }
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(hubUrl)
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new JitterRetryPolicy())
+            .WithServerTimeout(TimeSpan.FromSeconds(30))
+            .WithKeepAliveInterval(TimeSpan.FromSeconds(10))
             .Build();
 
         _hubConnection.On("Disconnect", () =>
@@ -140,137 +200,42 @@ public class ProxyClientService : BackgroundService
             _logger.LogWarning("Servidor solicitou desconexao");
         });
 
-        _hubConnection.On<HttpsBlockedNotification>("HttpsBlocked", notification =>
-        {
-            HandleHttpsBlockedNotification(notification);
-        });
-
         _hubConnection.Reconnecting += ex =>
         {
             _logger.LogWarning("Conexao com servidor em reconexao: {Message}", ex?.Message);
-            DisableProxyFailOpen();
+            // Nao desabilitar o proxy durante reconexao automatica
+            // O proxy permanece ativo ate que a reconexao falhe definitivamente
+            return Task.CompletedTask;
+        };
+
+        _hubConnection.Reconnected += connectionId =>
+        {
+            Interlocked.Exchange(ref _needsRegistration, 1);
+            _logger.LogInformation("Conexão com servidor restaurada ({ConnectionId}); registro será renovado", connectionId);
             return Task.CompletedTask;
         };
 
         _hubConnection.Closed += ex =>
         {
+            Interlocked.Exchange(ref _needsRegistration, 1);
             _logger.LogWarning("Conexao com servidor encerrada: {Message}", ex?.Message);
             _endpointResolver.Invalidate();
-            DisableProxyFailOpen();
+            // Nao desabilitar o proxy imediatamente - o loop principal
+            // tentara reconectar no proximo ciclo e decidira se deve
+            // manter ou remover o proxy baseado no estado da conexao
             return Task.CompletedTask;
         };
 
         _currentHubUrl = hubUrl;
     }
 
-    private void HandleHttpsBlockedNotification(HttpsBlockedNotification notification)
-    {
-        try
-        {
-            var localIp = GetLocalIp();
-            if (!string.IsNullOrWhiteSpace(notification.Ip) &&
-                !string.Equals(notification.Ip, localIp, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            _logger.LogWarning(
-                "Bloqueio HTTPS recebido: host={Host} porta={Port} motivo={Reason} politica={Policy} destino={Destination}",
-                notification.Host,
-                notification.Port,
-                notification.Reason,
-                notification.Policy,
-                notification.BlockDestination);
-
-            if ((DateTime.UtcNow - _lastHttpsBlockNotificationAt) < TimeSpan.FromSeconds(10))
-            {
-                return;
-            }
-
-            var endpoint = _currentEndpoint;
-            if (endpoint is null)
-            {
-                return;
-            }
-
-            _lastHttpsBlockNotificationAt = DateTime.UtcNow;
-            var url = BuildBlockedPageUrl(endpoint, notification);
-            if (!TryOpenBlockedPage(url))
-            {
-                _ = ReportHttpsBlockNotificationFailure(notification, url);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Falha ao processar notificacao de bloqueio HTTPS");
-        }
-    }
-
-    private static string BuildBlockedPageUrl(ServerEndpoint endpoint, HttpsBlockedNotification notification)
-    {
-        if (!string.IsNullOrWhiteSpace(notification.BlockedPageUrl) &&
-            Uri.TryCreate(notification.BlockedPageUrl, UriKind.Absolute, out _))
-        {
-            return notification.BlockedPageUrl;
-        }
-
-        var path = !string.IsNullOrWhiteSpace(notification.BlockedPagePath)
-            ? notification.BlockedPagePath
-            : "/blocked";
-
-        return $"http://{endpoint.Ip}:{endpoint.DashboardPort}{path}";
-    }
-
-    private bool TryOpenBlockedPage(string url)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = url,
-                UseShellExecute = true
-            });
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Nao foi possivel abrir a pagina de bloqueio HTTPS: {Url}", url);
-            return false;
-        }
-    }
-
-    private async Task ReportHttpsBlockNotificationFailure(HttpsBlockedNotification notification, string url)
-    {
-        try
-        {
-            if (_hubConnection is null || _hubConnection.State != HubConnectionState.Connected)
-            {
-                return;
-            }
-
-            await _hubConnection.SendAsync(
-                "ReportHttpsBlockNotificationFailed",
-                notification.Ip,
-                notification.Host,
-                notification.Port,
-                notification.Reason,
-                notification.Policy,
-                url);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Falha ao reportar que a pagina de bloqueio HTTPS nao abriu.");
-        }
-    }
-
-    private async Task RegisterWithServer(ServerEndpoint endpoint)
+    private async Task RegisterWithServer(ServerEndpoint endpoint, CancellationToken cancellationToken)
     {
         var studentName = Environment.UserName;
         var hostname = Environment.MachineName;
         var os = Environment.OSVersion.VersionString;
         var mac = GetMacAddress();
 
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
         var payload = new
         {
             ip = GetLocalIp(),
@@ -281,24 +246,21 @@ public class ProxyClientService : BackgroundService
             group = "default"
         };
 
-        var response = await client.PostAsync(
-            $"http://{endpoint.Ip}:{endpoint.DashboardPort}/api/students/register",
-            new StringContent(JsonConvert.SerializeObject(payload), System.Text.Encoding.UTF8, "application/json"));
-
-        response.EnsureSuccessStatusCode();
+        await _serverApi.PostAsync(endpoint, "/api/students/register", payload, cancellationToken);
         _logger.LogInformation("Registrado no servidor como {Name}", studentName);
     }
 
     private async Task EnsureProxyRootCertificateTrustedAsync(ServerEndpoint endpoint, CancellationToken cancellationToken)
     {
-        var certUrl = $"http://{endpoint.Ip}:{endpoint.DashboardPort}/api/certificate/root";
+        var certificateEndpoint = $"{endpoint.Ip}:{endpoint.DashboardPort}";
+        if (string.Equals(_lastCertificateEndpoint, certificateEndpoint, StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(_trustedRootThumbprint) &&
+            DateTime.UtcNow - _lastCertificateCheckUtc < TimeSpan.FromMinutes(5))
+        {
+            return;
+        }
 
-        using var handler = new HttpClientHandler { UseProxy = false };
-        using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
-        using var response = await httpClient.GetAsync(certUrl, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var certBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        var certBytes = await _serverApi.GetCertificateAsync(endpoint, cancellationToken);
         using var rootCert = new X509Certificate2(certBytes);
 
         var thumbprint = rootCert.Thumbprint?.Replace(" ", "", StringComparison.Ordinal) ?? string.Empty;
@@ -307,8 +269,12 @@ public class ProxyClientService : BackgroundService
             throw new InvalidOperationException("Certificado raiz recebido sem thumbprint.");
         }
 
+        ValidateRootCertificate(rootCert, thumbprint);
+
         if (string.Equals(_trustedRootThumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
         {
+            _lastCertificateEndpoint = certificateEndpoint;
+            _lastCertificateCheckUtc = DateTime.UtcNow;
             return;
         }
 
@@ -316,6 +282,8 @@ public class ProxyClientService : BackgroundService
             CertificateExistsInRootStore(thumbprint, StoreLocation.CurrentUser))
         {
             _trustedRootThumbprint = thumbprint;
+            _lastCertificateEndpoint = certificateEndpoint;
+            _lastCertificateCheckUtc = DateTime.UtcNow;
             return;
         }
 
@@ -328,6 +296,8 @@ public class ProxyClientService : BackgroundService
         }
 
         _trustedRootThumbprint = thumbprint;
+        _lastCertificateEndpoint = certificateEndpoint;
+        _lastCertificateCheckUtc = DateTime.UtcNow;
         _logger.LogInformation("Certificado raiz do proxy instalado: {Thumbprint}", thumbprint);
     }
 
@@ -361,64 +331,37 @@ public class ProxyClientService : BackgroundService
         }
     }
 
-    private static void SetWindowsProxy(string proxyAddress, bool enable)
+    private void ValidateRootCertificate(X509Certificate2 certificate, string thumbprint)
     {
-        ApplyProxyToAllLoadedUsers(proxyAddress, enable);
-        ApplyProxyToCurrentUser(proxyAddress, enable);
-        InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
-        InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
-    }
-
-    private static void ApplyProxyToCurrentUser(string proxyAddress, bool enable)
-    {
-        using var regKey = Registry.CurrentUser.OpenSubKey(
-            @"Software\Microsoft\Windows\CurrentVersion\Internet Settings", true);
-        if (regKey is null)
+        var now = DateTime.UtcNow;
+        if (certificate.NotBefore.ToUniversalTime() > now || certificate.NotAfter.ToUniversalTime() <= now)
         {
-            return;
+            throw new InvalidOperationException("Certificado raiz recebido está expirado ou ainda não é válido.");
         }
 
-        ApplyProxyValues(regKey, proxyAddress, enable);
-    }
-
-    private static void ApplyProxyToAllLoadedUsers(string proxyAddress, bool enable)
-    {
-        using var usersRoot = Registry.Users;
-        foreach (var sid in usersRoot.GetSubKeyNames())
+        var basicConstraints = certificate.Extensions.OfType<X509BasicConstraintsExtension>().FirstOrDefault();
+        if (basicConstraints is null || !basicConstraints.CertificateAuthority)
         {
-            if (!LooksLikeUserSid(sid))
-            {
-                continue;
-            }
+            throw new InvalidOperationException("Certificado recebido não é uma autoridade certificadora raiz válida.");
+        }
 
-            using var regKey = usersRoot.OpenSubKey(
-                $@"{sid}\Software\Microsoft\Windows\CurrentVersion\Internet Settings", true);
-            if (regKey is null)
-            {
-                continue;
-            }
+        if (!string.IsNullOrWhiteSpace(_pinnedRootThumbprint) &&
+            !string.Equals(_pinnedRootThumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("O certificado raiz recebido não corresponde ao thumbprint configurado.");
+        }
 
-            ApplyProxyValues(regKey, proxyAddress, enable);
+        if (string.IsNullOrWhiteSpace(_pinnedRootThumbprint) && !_warnedUnpinnedCertificate)
+        {
+            _warnedUnpinnedCertificate = true;
+            _logger.LogWarning("Server:RootCertificateThumbprint não foi configurado; a CA ainda é obtida por HTTP sem pinning.");
         }
     }
 
-    private static bool LooksLikeUserSid(string sid)
+    private static string? NormalizeThumbprint(string? value)
     {
-        return sid.StartsWith("S-1-5-21-", StringComparison.OrdinalIgnoreCase) ||
-               sid.StartsWith("S-1-12-1-", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void ApplyProxyValues(RegistryKey regKey, string proxyAddress, bool enable)
-    {
-        if (enable)
-        {
-            regKey.SetValue("ProxyEnable", 1, RegistryValueKind.DWord);
-            regKey.SetValue("ProxyServer", proxyAddress, RegistryValueKind.String);
-            regKey.SetValue("ProxyOverride", "localhost;127.*;10.*;172.16.*;192.168.*;<local>", RegistryValueKind.String);
-            return;
-        }
-
-        regKey.SetValue("ProxyEnable", 0, RegistryValueKind.DWord);
+        var normalized = value?.Replace(" ", "", StringComparison.Ordinal).Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 
     private static string GetLocalIp()
@@ -455,25 +398,22 @@ public class ProxyClientService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        SetWindowsProxy("", false);
+        WindowsProxyManager.SetProxy("", false);
         if (_hubConnection is not null)
         {
-            await _hubConnection.StopAsync(cancellationToken);
-            await _hubConnection.DisposeAsync();
+            await DisposeHubAsync(cancellationToken);
         }
 
         await base.StopAsync(cancellationToken);
     }
 
-    private sealed class HttpsBlockedNotification
+    private async Task DisposeHubAsync(CancellationToken cancellationToken)
     {
-        public string Ip { get; set; } = "";
-        public string Host { get; set; } = "";
-        public int Port { get; set; }
-        public string Reason { get; set; } = "";
-        public string Policy { get; set; } = "";
-        public string BlockedPagePath { get; set; } = "";
-        public string BlockedPageUrl { get; set; } = "";
-        public string BlockDestination { get; set; } = "";
+        var connection = Interlocked.Exchange(ref _hubConnection, null);
+        _currentHubUrl = null;
+        if (connection is null) return;
+        try { await connection.StopAsync(cancellationToken); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        finally { await connection.DisposeAsync(); }
     }
 }

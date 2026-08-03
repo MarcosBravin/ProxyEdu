@@ -1,5 +1,5 @@
 using Microsoft.Win32;
-using System.Security.Cryptography;
+using ProxyEdu.Shared.Utils;
 using System.Text;
 
 namespace ProxyEdu.Client.Services;
@@ -7,17 +7,18 @@ namespace ProxyEdu.Client.Services;
 /// <summary>
 /// Serviço de proteção que monitora e força a configuração do proxy,
 /// impedindo que alunos desativem o proxy local.
+/// Agora usa WindowsProxyManager compartilhado ao invés de código duplicado.
 /// </summary>
 public class ProxyProtectionService : BackgroundService
 {
     private readonly ILogger<ProxyProtectionService> _logger;
     private readonly ServerEndpointResolver _endpointResolver;
-    private readonly string _protectedProxyAddress;
+    private readonly ServerApiClient _serverApi;
     private readonly TimeSpan _checkInterval;
     private readonly bool _failClosed; // true = bloqueia acesso se não conseguir configurar proxy
     
     private string? _lastProxyServer;
-    private int _lastProxyEnable;
+    private bool _lastEnabled;
     private int _consecutiveFailures;
     private bool _serverAvailable;
     
@@ -28,22 +29,28 @@ public class ProxyProtectionService : BackgroundService
     public ProxyProtectionService(
         ILogger<ProxyProtectionService> logger,
         ServerEndpointResolver endpointResolver,
+        ServerApiClient serverApi,
         IConfiguration config)
     {
         _logger = logger;
         _endpointResolver = endpointResolver;
-        
-        // Carregar configurações
-        var proxyPort = config["Server:ProxyPort"] ?? "8888";
-        var dashboardPort = config["Server:DashboardPort"] ?? "5000";
-        _protectedProxyAddress = $"127.0.0.1:{proxyPort}";
+        _serverApi = serverApi;
         
         // Intervalo de verificação rápido (2 segundos)
         var intervalSeconds = config.GetValue<int?>("Protection:CheckIntervalSeconds") ?? 2;
+        if (intervalSeconds is < 1 or > 300)
+        {
+            throw new InvalidOperationException("Protection:CheckIntervalSeconds deve estar entre 1 e 300.");
+        }
         _checkInterval = TimeSpan.FromSeconds(intervalSeconds);
         
         // Modo fail-closed: true = bloqueia tudo se não conseguir configurar proxy
         _failClosed = config.GetValue<bool?>("Protection:FailClosed") ?? false;
+        
+        // Initialize state from current Windows proxy settings
+        var (currentProxy, enabled) = WindowsProxyManager.GetCurrentProxySettings();
+        _lastProxyServer = currentProxy;
+        _lastEnabled = enabled;
         
         _logger.LogInformation("Serviço de proteção iniciado. Fail-closed: {FailClosed}", _failClosed);
     }
@@ -59,11 +66,26 @@ public class ProxyProtectionService : BackgroundService
                 // 1. Verificar disponibilidade do servidor
                 await CheckServerAvailabilityAsync(stoppingToken);
                 
-                // 2. Forçar configuração do proxy
-                await EnforceProxyAsync(stoppingToken);
+                // 2. Verificar estado do coordenador - respeitar fail-open intencional do Client
+                var (clientEnabled, clientAddress, intentionalFailOpen) = ProxyStateCoordinator.GetCurrentState();
                 
-                // 3. Detectar e registrar tentativas de bypass
-                DetectBypassAttempts();
+                if (intentionalFailOpen)
+                {
+                    // Client intencionalmente em fail-open (servidor offline).
+                    // ProtectionService nao deve forçar proxy.
+                    _logger.LogDebug("Client em fail-open intencional, protection não vai forçar proxy");
+                    
+                    // Ainda detectar bypass para logging, mas sem forçar proxy
+                    DetectBypassAttempts();
+                }
+                else
+                {
+                    // 3. Forçar configuração do proxy (apenas se Client quer proxy ativo)
+                    await EnforceProxyAsync(stoppingToken);
+                    
+                    // 4. Detectar e registrar tentativas de bypass
+                    DetectBypassAttempts();
+                }
             }
             catch (Exception ex)
             {
@@ -87,19 +109,12 @@ public class ProxyProtectionService : BackgroundService
 
             var endpoint = await _endpointResolver.ResolveAsync(cancellationToken);
             
-            // Testar connectivity com servidor
-            using var handler = new HttpClientHandler { UseProxy = false };
-            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(3) };
             try
             {
-                var response = await client.GetAsync(
-                    $"http://{endpoint.Ip}:{endpoint.DashboardPort}/api/health", 
-                    cancellationToken);
-                _serverAvailable = response.IsSuccessStatusCode;
+                _serverAvailable = await _serverApi.IsHealthyAsync(endpoint, cancellationToken);
             }
             catch
             {
-                // Tentar endpoint alternativo
                 _serverAvailable = false;
             }
 
@@ -125,9 +140,6 @@ public class ProxyProtectionService : BackgroundService
             var endpoint = await _endpointResolver.ResolveAsync(stoppingToken);
             var proxyAddress = $"{endpoint.Ip}:{endpoint.ProxyPort}";
             
-            // Verificar configuração atual do proxy
-            var (currentProxy, proxyEnabled) = GetCurrentProxySettings();
-            
             // Se servidor não disponível e modo fail-closed, manter proxy configurado
             // Se servidor disponível, forçar configuração correta
             bool shouldEnforce = true;
@@ -146,27 +158,31 @@ public class ProxyProtectionService : BackgroundService
 
             if (shouldEnforce)
             {
-                SetWindowsProxy(proxyAddress, true);
+                if (!_lastEnabled || !string.Equals(_lastProxyServer, proxyAddress, StringComparison.OrdinalIgnoreCase))
+                {
+                    WindowsProxyManager.SetProxy(proxyAddress, true);
+                    _logger.LogInformation("Proxy reconciliado: {ProxyAddress}", proxyAddress);
+                }
                 _lastProxyServer = proxyAddress;
-                _lastProxyEnable = 1;
+                _lastEnabled = true;
                 _consecutiveFailures = 0;
                 
                 _logger.LogDebug("Proxy forçado: {ProxyAddress}", proxyAddress);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             _consecutiveFailures++;
             
             if (_consecutiveFailures >= 3)
             {
-                _logger.LogWarning("Falha consecutivas ao aplicar proxy: {Count}", _consecutiveFailures);
+                _logger.LogWarning("Falhas consecutivas ao aplicar proxy: {Count}", _consecutiveFailures);
                 
                 // Em modo fail-closed, manter última configuração conhecida
                 if (_failClosed && !string.IsNullOrEmpty(_lastProxyServer))
                 {
-                    SetWindowsProxy(_lastProxyServer, true);
-                    _logger.LogWarning("Fail-closed: mantendo último proxy known: {Proxy}", _lastProxyServer);
+                    WindowsProxyManager.SetProxy(_lastProxyServer, true);
+                    _logger.LogWarning("Fail-closed: mantendo último proxy conhecido: {Proxy}", _lastProxyServer);
                 }
             }
         }
@@ -176,10 +192,10 @@ public class ProxyProtectionService : BackgroundService
     {
         try
         {
-            var (currentProxy, proxyEnabled) = GetCurrentProxySettings();
+            var (currentProxy, proxyEnabled) = WindowsProxyManager.GetCurrentProxySettings();
             
             // Detectar se proxy foi desativado
-            if (_lastProxyEnable == 1 && proxyEnabled == 0)
+            if (_lastEnabled && !proxyEnabled)
             {
                 _logger.LogWarning("ALERTA: Tentativa de desativação do proxy detectada!");
                 
@@ -263,179 +279,10 @@ public class ProxyProtectionService : BackgroundService
                 LogSecurityEvent("WILDCARD_BYPASS", "Bypass com wildcard detectado");
             }
         }
-        catch (Exception ex)
-        {
-            _logger.LogDebug("Erro ao verificar WinHTTP: {Message}", ex.Message);
-        }
-    }
-
-    private (string? proxy, int enabled) GetCurrentProxySettings()
-    {
-        try
-        {
-            using var regKey = Registry.CurrentUser.OpenSubKey(
-                @"Software\Microsoft\Windows\CurrentVersion\Internet Settings");
-            
-            if (regKey is null)
-            {
-                return (null, 0);
-            }
-
-            var proxyServer = regKey.GetValue("ProxyServer") as string;
-            var proxyEnable = regKey.GetValue("ProxyEnable") as int? ?? 0;
-            
-            return (proxyServer, proxyEnable);
-        }
         catch
         {
-            return (null, 0);
+            // Falha ao verificar não crítica
         }
-    }
-
-    private void SetWindowsProxy(string proxyAddress, bool enable)
-    {
-        // Aplicar ao usuário atual
-        ApplyProxyToCurrentUser(proxyAddress, enable);
-        
-        // Aplicar a todos os usuários logados
-        ApplyProxyToAllLoadedUsers(proxyAddress, enable);
-        
-        // Forçar refresh das configurações
-        RefreshInternetSettings();
-        
-        // Também configurar WinHTTP
-        ConfigureWinHttp(proxyAddress, enable);
-    }
-
-    private static void ApplyProxyToCurrentUser(string proxyAddress, bool enable)
-    {
-        try
-        {
-            using var regKey = Registry.CurrentUser.OpenSubKey(
-                @"Software\Microsoft\Windows\CurrentVersion\Internet Settings", true);
-            
-            if (regKey is null) return;
-
-            if (enable)
-            {
-                regKey.SetValue("ProxyEnable", 1, RegistryValueKind.DWord);
-                regKey.SetValue("ProxyServer", proxyAddress, RegistryValueKind.String);
-                // Lista de bypass segura - apenas localhost
-                regKey.SetValue("ProxyOverride", "localhost;127.*;<local>", RegistryValueKind.String);
-                
-                // Remover configurações de PAC
-                regKey.DeleteValue("AutoConfigURL", false);
-                regKey.DeleteValue("AutoConfigDetect", false);
-            }
-            else
-            {
-                regKey.SetValue("ProxyEnable", 0, RegistryValueKind.DWord);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Erro ao aplicar proxy ao usuário atual: {ex.Message}");
-        }
-    }
-
-    private static void ApplyProxyToAllLoadedUsers(string proxyAddress, bool enable)
-    {
-        try
-        {
-            using var usersRoot = Registry.Users;
-            foreach (var sid in usersRoot.GetSubKeyNames())
-            {
-                if (!IsUserSid(sid)) continue;
-
-                try
-                {
-                    using var regKey = usersRoot.OpenSubKey(
-                        $@"{sid}\Software\Microsoft\Windows\CurrentVersion\Internet Settings", true);
-                    
-                    if (regKey is null) continue;
-
-                    if (enable)
-                    {
-                        regKey.SetValue("ProxyEnable", 1, RegistryValueKind.DWord);
-                        regKey.SetValue("ProxyServer", proxyAddress, RegistryValueKind.String);
-                        regKey.SetValue("ProxyOverride", "localhost;127.*;<local>", RegistryValueKind.String);
-                        regKey.DeleteValue("AutoConfigURL", false);
-                    }
-                    else
-                    {
-                        regKey.SetValue("ProxyEnable", 0, RegistryValueKind.DWord);
-                    }
-                }
-                catch
-                {
-                    // Permissão negada para alguns SIDs é normal
-                }
-            }
-        }
-        catch
-        {
-            // Erro ao acessar usuários
-        }
-    }
-
-    private void ConfigureWinHttp(string proxyAddress, bool enable)
-    {
-        try
-        {
-            // Configurar proxy WinHTTP via netsh
-            var process = new System.Diagnostics.Process
-            {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "netsh",
-                    Arguments = enable 
-                        ? $"winhttp set proxy proxy-server=\"{proxyAddress}\" bypass-list=\"localhost;127.*\""
-                        : "winhttp reset proxy",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                }
-            };
-            
-            process.Start();
-            process.WaitForExit(5000);
-            
-            _logger.LogDebug("WinHTTP proxy configurado: {Enable}", enable);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Falha ao configurar WinHTTP");
-        }
-    }
-
-    [System.Runtime.InteropServices.DllImport("wininet.dll")]
-    private static extern bool InternetSetOption(
-        IntPtr hInternet, 
-        int dwOption, 
-        IntPtr lpBuffer, 
-        int dwBufferLength);
-
-    private const int INTERNET_OPTION_SETTINGS_CHANGED = 39;
-    private const int INTERNET_OPTION_REFRESH = 37;
-
-    private static void RefreshInternetSettings()
-    {
-        try
-        {
-            InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
-            InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
-        }
-        catch
-        {
-            // Ignorar erros de refresh
-        }
-    }
-
-    private static bool IsUserSid(string sid)
-    {
-        return sid.StartsWith("S-1-5-21-", StringComparison.OrdinalIgnoreCase) ||
-               sid.StartsWith("S-1-12-1-", StringComparison.OrdinalIgnoreCase);
     }
 
     private void LogSecurityEvent(string eventType, string details)
@@ -472,10 +319,9 @@ public class ProxyProtectionService : BackgroundService
         if (_failClosed && !string.IsNullOrEmpty(_lastProxyServer))
         {
             _logger.LogInformation("Fail-closed: mantendo proxy ativo ao encerrar serviço");
-            SetWindowsProxy(_lastProxyServer, true);
+            WindowsProxyManager.SetProxy(_lastProxyServer, true);
         }
         
         await base.StopAsync(cancellationToken);
     }
 }
-

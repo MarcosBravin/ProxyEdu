@@ -1,156 +1,239 @@
-﻿using ProxyEdu.Shared.Models;
+﻿using System.Collections.Concurrent;
+using ProxyEdu.Shared.Models;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 using ProxyEdu.Server.Hubs;
 
 namespace ProxyEdu.Server.Services;
 
-public class StudentManagerService
+public class StudentManagerService : IHostedService
 {
     private static readonly TimeSpan OnlineWindow = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan StatsCacheDuration = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan BroadcastInterval = TimeSpan.FromSeconds(2);
+    private const string StatsCacheKey = "DashboardStats";
 
     private readonly DatabaseService _db;
     private readonly IHubContext<ProxyHub> _hub;
-    private readonly Dictionary<string, DateTime> _presenceByIp = new();
-    private readonly object _lock = new();
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<StudentManagerService> _logger;
+    private readonly StudentUpdateBuffer _studentBuffer;
 
-    public StudentManagerService(DatabaseService db, IHubContext<ProxyHub> hub)
+    // Lock-free presence tracking using ConcurrentDictionary
+    private readonly ConcurrentDictionary<string, DateTime> _presenceByIp = new(StringComparer.OrdinalIgnoreCase);
+
+    // Activity buffer para broadcasts agregados (reduz SignalR de milhares para ~5/segundo)
+    private readonly ConcurrentQueue<object> _activityBuffer = new();
+    private long _totalActivitiesBuffered;
+    private long _droppedActivities;
+    private int _pendingActivities;
+    private const int MaxPendingActivities = 10_000;
+    private CancellationTokenSource? _broadcastCts;
+    private Task? _broadcastTask;
+
+    public StudentManagerService(
+        DatabaseService db,
+        IHubContext<ProxyHub> hub,
+        IMemoryCache cache,
+        ILogger<StudentManagerService> logger,
+        StudentUpdateBuffer studentBuffer)
     {
         _db = db;
         _hub = hub;
+        _cache = cache;
+        _logger = logger;
+        _studentBuffer = studentBuffer;
+
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _broadcastCts = new CancellationTokenSource();
+        _broadcastTask = BroadcastAggregatedActivityLoopAsync(_broadcastCts.Token);
+        return Task.CompletedTask;
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (_broadcastCts is null || _broadcastTask is null) return;
+        _broadcastCts.Cancel();
+        try { await _broadcastTask.WaitAsync(cancellationToken); }
+        catch (OperationCanceledException) when (_broadcastCts.IsCancellationRequested) { }
+        finally { _broadcastCts.Dispose(); _broadcastCts = null; _broadcastTask = null; }
+    }
+
+    /// <summary>
+    /// Loop que envia atividades agregadas a cada 2 segundos.
+    /// Em vez de enviar SignalR por request, bufferiza e envia em lote.
+    /// </summary>
+    private async Task BroadcastAggregatedActivityLoopAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(BroadcastInterval);
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            try
+            {
+                if (Volatile.Read(ref _pendingActivities) == 0)
+                    continue;
+
+                // Coleta lote atual (máximo 100 atividades por broadcast)
+                var batch = new List<object>();
+                while (batch.Count < 100 && _activityBuffer.TryDequeue(out var activity))
+                {
+                    Interlocked.Decrement(ref _pendingActivities);
+                    batch.Add(activity);
+                }
+
+                if (batch.Count > 0)
+                {
+                    await _hub.Clients.All.SendAsync("StudentActivityBatch", batch, stoppingToken);
+                    Interlocked.Add(ref _totalActivitiesBuffered, batch.Count);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Erro no broadcast agregado de atividades");
+            }
+        }
+    }
+
+    public int GetPendingActivityCount() => Volatile.Read(ref _pendingActivities);
+
+    private void QueueActivity(object activity)
+    {
+        if (Interlocked.Increment(ref _pendingActivities) > MaxPendingActivities)
+        {
+            Interlocked.Decrement(ref _pendingActivities);
+            Interlocked.Increment(ref _droppedActivities);
+            return;
+        }
+        _activityBuffer.Enqueue(activity);
+    }
+
+    private void Publish(string eventName, object payload)
+    {
+        _ = PublishAsync(eventName, payload);
+    }
+
+    private async Task PublishAsync(string eventName, object payload)
+    {
+        try { await _hub.Clients.All.SendAsync(eventName, payload); }
+        catch (Exception ex) { _logger.LogWarning(ex, "SignalR publish failed for {EventName}", eventName); }
     }
 
     public StudentInfo RegisterOrUpdate(string ip, string hostname, string name, string os, string macAddress, string group)
     {
-        lock (_lock)
+        var normalizedIp = IpAddressNormalizer.Normalize(ip);
+        if (string.IsNullOrWhiteSpace(normalizedIp))
         {
-            var normalizedIp = IpAddressNormalizer.Normalize(ip);
-            if (string.IsNullOrWhiteSpace(normalizedIp))
-            {
-                throw new ArgumentException("IP invalido para registro.", nameof(ip));
-            }
-
-            TouchPresence(normalizedIp);
-
-            var now = DateTime.UtcNow;
-            var existing = FindStudentByIp(normalizedIp);
-            if (existing == null)
-            {
-                existing = new StudentInfo
-                {
-                    IpAddress = normalizedIp,
-                    Hostname = hostname,
-                    Name = string.IsNullOrEmpty(name) ? hostname : name,
-                    Os = os,
-                    MacAddress = macAddress,
-                    Group = string.IsNullOrWhiteSpace(group) ? "default" : group,
-                    IsConnected = true,
-                    ConnectedAt = now,
-                    LastSeen = now
-                };
-                _db.Students.Insert(existing);
-            }
-            else
-            {
-                existing.IpAddress = normalizedIp;
-                existing.IsConnected = true;
-                existing.LastSeen = now;
-                if (!string.IsNullOrEmpty(name)) existing.Name = name;
-                if (!string.IsNullOrEmpty(hostname)) existing.Hostname = hostname;
-                if (!string.IsNullOrEmpty(macAddress)) existing.MacAddress = macAddress;
-                if (!string.IsNullOrWhiteSpace(group)) existing.Group = group;
-                if (!string.IsNullOrWhiteSpace(os)) existing.Os = os;
-                _db.Students.Update(existing);
-            }
-
-            var snapshot = MaterializeForDashboard(existing);
-            _hub.Clients.All.SendAsync("StudentUpdated", snapshot);
-            return snapshot;
+            throw new ArgumentException("IP invalido para registro.", nameof(ip));
         }
+
+        TouchPresence(normalizedIp);
+
+        var now = DateTime.UtcNow;
+        var existing = FindStudentByIp(normalizedIp);
+        if (existing == null)
+        {
+            existing = new StudentInfo
+            {
+                IpAddress = normalizedIp,
+                Hostname = hostname,
+                Name = string.IsNullOrEmpty(name) ? hostname : name,
+                Os = os,
+                MacAddress = macAddress,
+                Group = string.IsNullOrWhiteSpace(group) ? "default" : group,
+                IsConnected = true,
+                ConnectedAt = now,
+                LastSeen = now
+            };
+            _db.Students.Insert(existing);
+        }
+        else
+        {
+            existing.IpAddress = normalizedIp;
+            existing.IsConnected = true;
+            existing.LastSeen = now;
+            if (!string.IsNullOrEmpty(name)) existing.Name = name;
+            if (!string.IsNullOrEmpty(hostname)) existing.Hostname = hostname;
+            if (!string.IsNullOrEmpty(macAddress)) existing.MacAddress = macAddress;
+            if (!string.IsNullOrWhiteSpace(group)) existing.Group = group;
+            if (!string.IsNullOrWhiteSpace(os)) existing.Os = os;
+            _db.Students.Update(existing);
+        }
+
+        InvalidateStatsCache();
+        var snapshot = MaterializeForDashboard(existing);
+        Publish("StudentUpdated", snapshot);
+        return snapshot;
     }
 
     public void TouchHeartbeat(string ip, string? currentUrl = null)
     {
-        lock (_lock)
-        {
-            var normalizedIp = IpAddressNormalizer.Normalize(ip);
-            if (string.IsNullOrWhiteSpace(normalizedIp)) return;
-            TouchPresence(normalizedIp);
+        var normalizedIp = IpAddressNormalizer.Normalize(ip);
+        if (string.IsNullOrWhiteSpace(normalizedIp)) return;
 
-            var student = FindStudentByIp(normalizedIp);
-            if (student == null) return;
+        TouchPresence(normalizedIp);
 
-            if (!string.IsNullOrWhiteSpace(currentUrl))
-            {
-                _hub.Clients.All.SendAsync("StudentActivity", new
-                {
-                    studentId = student.Id,
-                    ip = normalizedIp,
-                    url = currentUrl,
-                    blocked = false,
-                    timestamp = DateTime.UtcNow
-                });
-            }
-        }
+        // Não faz broadcast de heartbeat individual - o loop agregado cuida disso
     }
 
     public void UpdateActivity(string ip, string url, bool blocked, long bytes)
     {
-        lock (_lock)
+        var normalizedIp = IpAddressNormalizer.Normalize(ip);
+        if (string.IsNullOrWhiteSpace(normalizedIp)) return;
+
+        TouchPresence(normalizedIp);
+
+        var student = FindStudentByIp(normalizedIp);
+        if (student == null) return;
+
+        // Atualiza em memória (sem escrever no LiteDB a cada request)
+        student.LastSeen = DateTime.UtcNow;
+        student.CurrentUrl = url;
+        student.TotalRequests++;
+        student.BytesTransferred += bytes;
+        if (blocked) student.BlockedRequests++;
+
+        // Bufferiza a atualização no LiteDB (escrita em lote a cada 5s)
+        _studentBuffer.BufferUpdate(student);
+
+        // Bufferiza atividade para broadcast agregado (evita SignalR por request)
+        QueueActivity(new
         {
-            var normalizedIp = IpAddressNormalizer.Normalize(ip);
-            if (string.IsNullOrWhiteSpace(normalizedIp)) return;
-
-            TouchPresence(normalizedIp);
-
-            var student = FindStudentByIp(normalizedIp);
-            if (student == null) return;
-
-            student.LastSeen = DateTime.UtcNow;
-            student.CurrentUrl = url;
-            student.TotalRequests++;
-            student.BytesTransferred += bytes;
-            if (blocked) student.BlockedRequests++;
-            _db.Students.Update(student);
-
-            _hub.Clients.All.SendAsync("StudentActivity", new
-            {
-                studentId = student.Id,
-                ip = normalizedIp,
-                url,
-                blocked,
-                timestamp = DateTime.UtcNow
-            });
-        }
+            studentId = student.Id,
+            ip = normalizedIp,
+            url,
+            blocked,
+            timestamp = DateTime.UtcNow
+        });
     }
 
     public void SetStudentBlocked(string studentId, bool blocked)
     {
-        lock (_lock)
-        {
-            var student = _db.Students.FindById(studentId);
-            if (student == null) return;
-            student.IsBlocked = blocked;
-            if (blocked) student.BypassFilters = false;
-            _db.Students.Update(student);
+        var student = _db.Students.FindById(studentId);
+        if (student == null) return;
+        student.IsBlocked = blocked;
+        if (blocked) student.BypassFilters = false;
+        _db.Students.Update(student);
+        InvalidateStatsCache();
 
-            _hub.Clients.All.SendAsync("StudentUpdated", MaterializeForDashboard(student));
-        }
+        Publish("StudentUpdated", MaterializeForDashboard(student));
     }
 
     public void SetGroupBlocked(string groupName, bool blocked)
     {
-        lock (_lock)
+        var students = _db.Students.Find(s => s.Group == groupName).ToList();
+        foreach (var s in students)
         {
-            var students = _db.Students.Find(s => s.Group == groupName).ToList();
-            foreach (var s in students)
-            {
-                s.IsBlocked = blocked;
-                if (blocked) s.BypassFilters = false;
-                _db.Students.Update(s);
-            }
-
-            _hub.Clients.All.SendAsync("GroupUpdated", new { group = groupName, blocked });
+            s.IsBlocked = blocked;
+            if (blocked) s.BypassFilters = false;
+            _db.Students.Update(s);
         }
+
+        InvalidateStatsCache();
+        Publish("GroupUpdated", new { group = groupName, blocked });
     }
 
     public void BlockAll() => SetAllBlocked(true);
@@ -160,130 +243,124 @@ public class StudentManagerService
 
     private void SetAllBlocked(bool blocked)
     {
-        lock (_lock)
+        var all = _db.Students.FindAll().ToList();
+        foreach (var s in all)
         {
-            var all = _db.Students.FindAll().ToList();
-            foreach (var s in all)
-            {
-                s.IsBlocked = blocked;
-                if (blocked) s.BypassFilters = false;
-                _db.Students.Update(s);
-            }
-            _hub.Clients.All.SendAsync("AllStudentsUpdated", new { blocked });
+            s.IsBlocked = blocked;
+            if (blocked) s.BypassFilters = false;
+            _db.Students.Update(s);
         }
+        InvalidateStatsCache();
+        Publish("AllStudentsUpdated", new { blocked });
     }
 
     public void SetStudentBypassFilters(string studentId, bool bypass)
     {
-        lock (_lock)
-        {
-            var student = _db.Students.FindById(studentId);
-            if (student == null) return;
-            student.BypassFilters = bypass;
-            if (bypass) student.IsBlocked = false;
-            _db.Students.Update(student);
-            _hub.Clients.All.SendAsync("StudentUpdated", MaterializeForDashboard(student));
-        }
+        var student = _db.Students.FindById(studentId);
+        if (student == null) return;
+        student.BypassFilters = bypass;
+        if (bypass) student.IsBlocked = false;
+        _db.Students.Update(student);
+        InvalidateStatsCache();
+        Publish("StudentUpdated", MaterializeForDashboard(student));
     }
 
     public bool IsStudentBypassFilters(string ip)
     {
-        lock (_lock)
-        {
-            var student = FindStudentByIp(ip);
-            return student?.BypassFilters ?? false;
-        }
+        var student = FindStudentByIp(ip);
+        return student?.BypassFilters ?? false;
     }
 
     private void SetAllBypassFilters(bool bypass)
     {
-        lock (_lock)
+        var all = _db.Students.FindAll().ToList();
+        foreach (var s in all)
         {
-            var all = _db.Students.FindAll().ToList();
-            foreach (var s in all)
-            {
-                s.BypassFilters = bypass;
-                if (bypass) s.IsBlocked = false;
-                _db.Students.Update(s);
-            }
-            _hub.Clients.All.SendAsync("AllStudentsUpdated", new { bypassFilters = bypass });
+            s.BypassFilters = bypass;
+            if (bypass) s.IsBlocked = false;
+            _db.Students.Update(s);
         }
+        InvalidateStatsCache();
+        Publish("AllStudentsUpdated", new { bypassFilters = bypass });
     }
 
     public bool IsStudentBlocked(string ip)
     {
-        lock (_lock)
-        {
-            var student = FindStudentByIp(ip);
-            return student?.IsBlocked ?? false;
-        }
+        var student = FindStudentByIp(ip);
+        return student?.IsBlocked ?? false;
     }
 
     public List<StudentInfo> GetAll()
     {
-        lock (_lock)
-        {
-            CleanupPresence();
-            return _db.Students.FindAll().Select(MaterializeForDashboard).ToList();
-        }
+        CleanupPresence();
+        return _db.Students.FindAll().Select(MaterializeForDashboard).ToList();
     }
 
     public void MarkDisconnected(string ip)
     {
-        lock (_lock)
+        var normalizedIp = IpAddressNormalizer.Normalize(ip);
+        if (string.IsNullOrWhiteSpace(normalizedIp))
         {
-            var normalizedIp = IpAddressNormalizer.Normalize(ip);
-            if (string.IsNullOrWhiteSpace(normalizedIp))
-            {
-                return;
-            }
+            return;
+        }
 
-            _presenceByIp.Remove(normalizedIp);
-            var student = FindStudentByIp(normalizedIp);
-            if (student != null)
-            {
-                student.IsConnected = false;
-                _db.Students.Update(student);
-                _hub.Clients.All.SendAsync("StudentUpdated", MaterializeForDashboard(student));
-            }
+        _presenceByIp.TryRemove(normalizedIp, out _);
+        var student = FindStudentByIp(normalizedIp);
+        if (student != null)
+        {
+            student.IsConnected = false;
+            _db.Students.Update(student);
+            InvalidateStatsCache();
+            Publish("StudentUpdated", MaterializeForDashboard(student));
         }
     }
 
     public DashboardStats GetStats()
     {
-        lock (_lock)
+        // Try cache first (2 second window)
+        if (_cache.TryGetValue(StatsCacheKey, out DashboardStats? cached) && cached != null)
         {
-            CleanupPresence();
-
-            var students = _db.Students.FindAll().Select(MaterializeForDashboard).ToList();
-            var logs = _db.Logs.FindAll().ToList();
-            var recent = logs.OrderByDescending(l => l.Timestamp).Take(20).ToList();
-
-            var topDomains = logs
-                .GroupBy(l => l.Domain)
-                .OrderByDescending(g => g.Count())
-                .Take(10)
-                .Select(g => new TopDomain { Domain = g.Key, Count = g.Count() })
-                .ToList();
-
-            return new DashboardStats
-            {
-                TotalStudents = students.Count,
-                ConnectedStudents = students.Count(s => s.IsConnected),
-                BlockedStudents = students.Count(s => s.IsBlocked),
-                TotalRequests = students.Sum(s => s.TotalRequests),
-                BlockedRequests = students.Sum(s => s.BlockedRequests),
-                BytesTransferred = students.Sum(s => s.BytesTransferred),
-                TopDomains = topDomains,
-                RecentActivity = recent.Select(l => new RecentActivity
-                {
-                    StudentName = l.StudentName,
-                    Action = l.WasBlocked ? "Bloqueado" : "Acessou",
-                    Detail = l.Domain,
-                    Timestamp = l.Timestamp
-                }).ToList()
-            };
+            return cached;
         }
+
+        CleanupPresence();
+
+        var students = _db.Students.FindAll().Select(MaterializeForDashboard).ToList();
+        var logs = _db.Logs.FindAll().ToList();
+        var recent = logs.OrderByDescending(l => l.Timestamp).Take(20).ToList();
+
+        var topDomains = logs
+            .GroupBy(l => l.Domain)
+            .OrderByDescending(g => g.Count())
+            .Take(10)
+            .Select(g => new TopDomain { Domain = g.Key, Count = g.Count() })
+            .ToList();
+
+        var stats = new DashboardStats
+        {
+            TotalStudents = students.Count,
+            ConnectedStudents = students.Count(s => s.IsConnected),
+            BlockedStudents = students.Count(s => s.IsBlocked),
+            TotalRequests = students.Sum(s => s.TotalRequests),
+            BlockedRequests = students.Sum(s => s.BlockedRequests),
+            BytesTransferred = students.Sum(s => s.BytesTransferred),
+            TopDomains = topDomains,
+            RecentActivity = recent.Select(l => new RecentActivity
+            {
+                StudentName = l.StudentName,
+                Action = l.WasBlocked ? "Bloqueado" : "Acessou",
+                Detail = l.Domain,
+                Timestamp = l.Timestamp
+            }).ToList()
+        };
+
+        _cache.Set(StatsCacheKey, stats, StatsCacheDuration);
+        return stats;
+    }
+
+    private void InvalidateStatsCache()
+    {
+        _cache.Remove(StatsCacheKey);
     }
 
     private StudentInfo MaterializeForDashboard(StudentInfo source)
@@ -318,6 +395,7 @@ public class StudentManagerService
             return;
         }
 
+        // ConcurrentDictionary lock-free update
         _presenceByIp[normalizedIp] = DateTime.UtcNow;
     }
 
@@ -348,6 +426,8 @@ public class StudentManagerService
     private void CleanupPresence()
     {
         var now = DateTime.UtcNow;
+
+        // Lock-free cleanup usando ConcurrentDictionary
         var stale = _presenceByIp
             .Where(kvp => (now - kvp.Value) > OnlineWindow)
             .Select(kvp => kvp.Key)
@@ -355,7 +435,7 @@ public class StudentManagerService
 
         foreach (var ip in stale)
         {
-            _presenceByIp.Remove(ip);
+            _presenceByIp.TryRemove(ip, out _);
         }
     }
 

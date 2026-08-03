@@ -7,6 +7,13 @@ namespace ProxyEdu.Server.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
+    private readonly AuthService _authService;
+
+    public AuthController(AuthService authService)
+    {
+        _authService = authService;
+    }
+
     [HttpGet("me")]
     public IActionResult Me()
     {
@@ -20,9 +27,46 @@ public class AuthController : ControllerBase
         {
             id = user.Id,
             username = user.Username,
-            role = user.Role.ToString()
+            role = user.Role.ToString(),
+            isPasswordChangeRequired = user.IsPasswordChangeRequired
         });
     }
+
+    [HttpPost("change-password")]
+    public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var user = HttpContext.GetAuthenticatedUser();
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            return BadRequest(new { error = "Senha atual e nova senha são obrigatórias." });
+        }
+
+        try
+        {
+            var result = _authService.ChangePassword(user.Id, request.CurrentPassword, request.NewPassword);
+            if (!result)
+            {
+                return BadRequest(new { error = "Senha atual incorreta." });
+            }
+
+            return Ok(new { success = true, message = "Senha alterada com sucesso." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+}
+
+public sealed class ChangePasswordRequest
+{
+    public string CurrentPassword { get; set; } = "";
+    public string NewPassword { get; set; } = "";
 }
 
 [ApiController]
@@ -148,15 +192,8 @@ public class UsersController : ControllerBase
             return BadRequest("Nao e permitido remover o proprio usuario logado.");
         }
 
-        try
-        {
-            _authService.DeleteUser(id);
-            return Ok(new { success = true });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        _authService.DeleteUser(id);
+        return Ok(new { success = true });
     }
 }
 

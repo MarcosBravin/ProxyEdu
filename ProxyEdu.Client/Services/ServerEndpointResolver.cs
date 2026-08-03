@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +10,6 @@ public sealed class ServerEndpoint
     public string Ip { get; init; } = "";
     public int DashboardPort { get; init; }
     public int ProxyPort { get; init; }
-    public bool EnableHttpsInspection { get; init; }
 }
 
 public class ServerEndpointResolver
@@ -19,19 +17,31 @@ public class ServerEndpointResolver
     private const string DiscoveryProbe = "PROXYEDU_DISCOVER_V1";
     private readonly IConfiguration _config;
     private readonly ILogger<ServerEndpointResolver> _logger;
+    private readonly NetworkConnectivityMonitor _networkMonitor;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private ServerEndpoint? _cachedEndpoint;
 
     public ServerEndpointResolver(
         IConfiguration config,
-        ILogger<ServerEndpointResolver> logger)
+        ILogger<ServerEndpointResolver> logger,
+        NetworkConnectivityMonitor networkMonitor)
     {
         _config = config;
         _logger = logger;
+        _networkMonitor = networkMonitor;
+        _networkMonitorChangedGeneration = networkMonitor.Generation;
     }
+
+    private long _networkMonitorChangedGeneration;
 
     public async Task<ServerEndpoint> ResolveAsync(CancellationToken cancellationToken)
     {
+        var networkGeneration = _networkMonitor.Generation;
+        if (networkGeneration != Interlocked.Read(ref _networkMonitorChangedGeneration))
+        {
+            Invalidate();
+            Interlocked.Exchange(ref _networkMonitorChangedGeneration, networkGeneration);
+        }
         if (_cachedEndpoint is not null)
         {
             return _cachedEndpoint;
@@ -46,8 +56,8 @@ public class ServerEndpointResolver
             }
 
             var configuredIp = (_config["Server:Ip"] ?? "").Trim();
-            var defaultDashboardPort = int.Parse(_config["Server:DashboardPort"] ?? "5000");
-            var defaultProxyPort = int.Parse(_config["Server:ProxyPort"] ?? "8888");
+            var defaultDashboardPort = ReadPort("Server:DashboardPort", 5000);
+            var defaultProxyPort = ReadPort("Server:ProxyPort", 8888);
             var autoDiscover = _config.GetValue<bool?>("Server:AutoDiscover") ?? true;
 
             if (!string.IsNullOrWhiteSpace(configuredIp))
@@ -56,8 +66,7 @@ public class ServerEndpointResolver
                 {
                     Ip = configuredIp,
                     DashboardPort = defaultDashboardPort,
-                    ProxyPort = defaultProxyPort,
-                    EnableHttpsInspection = _config.GetValue<bool?>("Server:EnableHttpsInspection") ?? false
+                    ProxyPort = defaultProxyPort
                 };
                 return _cachedEndpoint;
             }
@@ -67,18 +76,7 @@ public class ServerEndpointResolver
                 throw new InvalidOperationException("Server:Ip vazio e auto descoberta desabilitada.");
             }
 
-            var configuredFallback = await TryConfiguredFallbacksAsync(
-                defaultDashboardPort,
-                defaultProxyPort,
-                cancellationToken);
-            if (configuredFallback is not null)
-            {
-                _cachedEndpoint = configuredFallback;
-                return _cachedEndpoint;
-            }
-
-            var discovered = await TryLocalServerAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
-            discovered ??= await DiscoverAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
+            var discovered = await DiscoverAsync(defaultDashboardPort, defaultProxyPort, cancellationToken);
             if (discovered is null)
             {
                 throw new InvalidOperationException("Nenhum servidor ProxyEdu encontrado na rede local.");
@@ -98,6 +96,14 @@ public class ServerEndpointResolver
         _cachedEndpoint = null;
     }
 
+    private int ReadPort(string key, int fallback)
+    {
+        var raw = _config[key];
+        if (string.IsNullOrWhiteSpace(raw)) return fallback;
+        if (int.TryParse(raw, out var port) && port is >= 1 and <= 65535) return port;
+        throw new InvalidOperationException($"Configuração inválida para {key}: '{raw}'. Use uma porta entre 1 e 65535.");
+    }
+
     private async Task<ServerEndpoint?> DiscoverAsync(
         int defaultDashboardPort,
         int defaultProxyPort,
@@ -106,31 +112,32 @@ public class ServerEndpointResolver
         var discoveryPort = _config.GetValue<int?>("Server:DiscoveryPort") ?? 50505;
         using var udp = new UdpClient(0) { EnableBroadcast = true };
         var probe = Encoding.UTF8.GetBytes(DiscoveryProbe);
-        var targets = BuildDiscoveryTargets(discoveryPort);
+        var broadcastEndPoint = new IPEndPoint(IPAddress.Broadcast, discoveryPort);
 
         for (var attempt = 1; attempt <= 3; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                foreach (var target in targets)
-                {
-                    await udp.SendAsync(probe, probe.Length, target);
-                }
+                await udp.SendAsync(probe, probe.Length, broadcastEndPoint);
 
                 var receiveTask = udp.ReceiveAsync();
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(2), timeoutCts.Token);
                 var completed = await Task.WhenAny(receiveTask, timeoutTask);
 
                 if (completed != receiveTask)
                 {
+                    _ = receiveTask.ContinueWith(t => _ = t.Exception, CancellationToken.None,
+                        TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
                     continue;
                 }
 
+                timeoutCts.Cancel();
                 var response = await receiveTask;
                 var dashboardPort = defaultDashboardPort;
                 var proxyPort = defaultProxyPort;
-                var enableHttpsInspection = false;
 
                 try
                 {
@@ -145,11 +152,6 @@ public class ServerEndpointResolver
                     {
                         proxyPort = proxyPortParsed;
                     }
-                    if (json.RootElement.TryGetProperty("enableHttpsInspection", out var httpsInspectionProp) &&
-                        (httpsInspectionProp.ValueKind == JsonValueKind.True || httpsInspectionProp.ValueKind == JsonValueKind.False))
-                    {
-                        enableHttpsInspection = httpsInspectionProp.GetBoolean();
-                    }
                 }
                 catch
                 {
@@ -162,16 +164,14 @@ public class ServerEndpointResolver
                 {
                     Ip = ip,
                     DashboardPort = dashboardPort,
-                    ProxyPort = proxyPort,
-                    EnableHttpsInspection = enableHttpsInspection
+                    ProxyPort = proxyPort
                 };
             }
             catch (SocketException ex) when (
                 ex.SocketErrorCode == SocketError.HostUnreachable ||
                 ex.SocketErrorCode == SocketError.NetworkUnreachable ||
                 ex.SocketErrorCode == SocketError.AddressNotAvailable ||
-                ex.SocketErrorCode == SocketError.AddressFamilyNotSupported ||
-                ex.SocketErrorCode == SocketError.ConnectionReset)
+                ex.SocketErrorCode == SocketError.AddressFamilyNotSupported)
             {
                 _logger.LogWarning(
                     "Discovery UDP indisponivel nesta rede (tentativa {Attempt}/3): {SocketError}",
@@ -181,144 +181,5 @@ public class ServerEndpointResolver
         }
 
         return null;
-    }
-
-    private async Task<ServerEndpoint?> TryConfiguredFallbacksAsync(
-        int defaultDashboardPort,
-        int defaultProxyPort,
-        CancellationToken cancellationToken)
-    {
-        var fallbackIps = (_config["Server:FallbackIps"] ?? "")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        foreach (var ip in fallbackIps)
-        {
-            var endpoint = await TryHttpEndpointAsync(ip, defaultDashboardPort, defaultProxyPort, cancellationToken);
-            if (endpoint is not null)
-            {
-                return endpoint;
-            }
-        }
-
-        return null;
-    }
-
-    private Task<ServerEndpoint?> TryLocalServerAsync(
-        int defaultDashboardPort,
-        int defaultProxyPort,
-        CancellationToken cancellationToken)
-    {
-        return TryHttpEndpointAsync("127.0.0.1", defaultDashboardPort, defaultProxyPort, cancellationToken);
-    }
-
-    private async Task<ServerEndpoint?> TryHttpEndpointAsync(
-        string ip,
-        int defaultDashboardPort,
-        int defaultProxyPort,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var handler = new HttpClientHandler { UseProxy = false };
-            using var http = new HttpClient(handler)
-            {
-                Timeout = TimeSpan.FromMilliseconds(800)
-            };
-
-            using var response = await http.GetAsync($"http://{ip}:{defaultDashboardPort}/api/health", cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            var dashboardPort = defaultDashboardPort;
-            var proxyPort = defaultProxyPort;
-            var enableHttpsInspection = _config.GetValue<bool?>("Server:EnableHttpsInspection") ?? false;
-
-            try
-            {
-                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-                if (json.RootElement.TryGetProperty("dashboardPort", out var dashboardProp) &&
-                    dashboardProp.TryGetInt32(out var dashboardPortParsed))
-                {
-                    dashboardPort = dashboardPortParsed;
-                }
-                if (json.RootElement.TryGetProperty("proxyPort", out var proxyProp) &&
-                    proxyProp.TryGetInt32(out var proxyPortParsed))
-                {
-                    proxyPort = proxyPortParsed;
-                }
-                if (json.RootElement.TryGetProperty("enableHttpsInspection", out var httpsInspectionProp) &&
-                    (httpsInspectionProp.ValueKind == JsonValueKind.True || httpsInspectionProp.ValueKind == JsonValueKind.False))
-                {
-                    enableHttpsInspection = httpsInspectionProp.GetBoolean();
-                }
-            }
-            catch
-            {
-                // Health endpoint reached; keep configured defaults if parsing fails.
-            }
-
-            _logger.LogInformation("Servidor ProxyEdu localizado por fallback HTTP em {Ip}:{Port}", ip, defaultDashboardPort);
-            return new ServerEndpoint
-            {
-                Ip = ip,
-                DashboardPort = dashboardPort,
-                ProxyPort = proxyPort,
-                EnableHttpsInspection = enableHttpsInspection
-            };
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or IOException)
-        {
-            return null;
-        }
-    }
-
-    private static IReadOnlyList<IPEndPoint> BuildDiscoveryTargets(int discoveryPort)
-    {
-        var targets = new Dictionary<string, IPEndPoint>(StringComparer.OrdinalIgnoreCase)
-        {
-            [IPAddress.Broadcast.ToString()] = new(IPAddress.Broadcast, discoveryPort),
-            [IPAddress.Loopback.ToString()] = new(IPAddress.Loopback, discoveryPort)
-        };
-
-        foreach (var address in GetInterfaceBroadcastAddresses())
-        {
-            targets.TryAdd(address.ToString(), new IPEndPoint(address, discoveryPort));
-        }
-
-        return targets.Values.ToList();
-    }
-
-    private static IEnumerable<IPAddress> GetInterfaceBroadcastAddresses()
-    {
-        foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
-        {
-            if (networkInterface.OperationalStatus != OperationalStatus.Up ||
-                networkInterface.NetworkInterfaceType == NetworkInterfaceType.Loopback)
-            {
-                continue;
-            }
-
-            foreach (var unicast in networkInterface.GetIPProperties().UnicastAddresses)
-            {
-                if (unicast.Address.AddressFamily != AddressFamily.InterNetwork ||
-                    unicast.IPv4Mask is null)
-                {
-                    continue;
-                }
-
-                var ipBytes = unicast.Address.GetAddressBytes();
-                var maskBytes = unicast.IPv4Mask.GetAddressBytes();
-                var broadcastBytes = new byte[ipBytes.Length];
-
-                for (var i = 0; i < ipBytes.Length; i++)
-                {
-                    broadcastBytes[i] = (byte)(ipBytes[i] | ~maskBytes[i]);
-                }
-
-                yield return new IPAddress(broadcastBytes);
-            }
-        }
     }
 }
