@@ -878,7 +878,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
           <div class="page-title">Dashboard</div>
           <div class="page-sub" id="dashboardTime">Carregando...</div>
         </div>
-        <button class="btn btn-outline" onclick="loadDashboard()">↻ Atualizar</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn btn-outline" onclick="checkUpdateManual()"><span class="material-symbols-rounded icon-inline">system_update</span> Verificar atualização</button>
+          <button class="btn btn-outline" onclick="loadDashboard()">↻ Atualizar</button>
+        </div>
       </div>
       <div class="stats-grid">
         <div class="stat-card blue">
@@ -906,12 +909,18 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
           <div class="stat-value" id="stat-blockedReqs">—</div>
           <div class="stat-sub">requisições negadas</div>
         </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Versão</div>
+          <div class="stat-value" id="update-current-version" style="font-size:24px">—</div>
+          <div class="stat-sub" id="update-version-status">verificando atualizações</div>
+        </div>
       </div>
 
       <div class="quick-bar">
         <span class="quick-bar-label">Ações Rápidas</span>
         <button class="btn btn-red btn-sm" onclick="blockAll()"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Todos</button>
         <button class="btn btn-green btn-sm" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
+        <button class="btn btn-outline btn-sm" id="checkUpdateBtn" onclick="checkUpdateManual()"><span class="material-symbols-rounded icon-inline">system_update</span> Verificar atualização</button>
         <button class="btn btn-outline btn-sm" onclick="addPreset('social')"><span class="material-symbols-rounded icon-inline">block</span> Bloquear Redes Sociais</button>
         <button class="btn btn-outline btn-sm" onclick="addPreset('games')"><span class="material-symbols-rounded icon-inline">sports_esports</span> Bloquear Jogos</button>
         <button class="btn btn-outline btn-sm" onclick="addPreset('streaming')"><span class="material-symbols-rounded icon-inline">live_tv</span> Bloquear Streaming</button>
@@ -1645,6 +1654,7 @@ function onAuthenticated() {
 
   initSignalR();
   loadAll();
+  loadUpdateStatus();
   checkUpdateNotification();
   updateClock();
 
@@ -1664,15 +1674,60 @@ async function loadAll() {
   }
 }
 
+async function loadUpdateStatus() {
+  const status = await api('GET', '/update');
+  if (!status) return;
+  updateStatus = status;
+  renderUpdateDashboard(status);
+}
+
 async function checkUpdateNotification() {
   const status = await api('POST', '/update/check');
   if (!status) return;
   updateStatus = status;
+  renderUpdateDashboard(status);
   if (status.state === 'Available') {
     renderUpdateStatus(status);
     toast(`Atualização disponível: ${status.latestTag || status.latestVersion}`, 'info');
     openModal('modalUpdate');
   }
+}
+
+async function checkUpdateManual() {
+  const btn = document.getElementById('checkUpdateBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-rounded icon-inline">hourglass_top</span> Verificando...';
+  }
+
+  const status = await api('POST', '/update/check');
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-rounded icon-inline">system_update</span> Verificar atualização';
+  }
+
+  if (!status) {
+    toast('Não foi possível verificar atualizações.', 'error');
+    return;
+  }
+
+  updateStatus = status;
+  renderUpdateDashboard(status);
+  renderUpdateStatus(status);
+
+  if (status.state === 'Available') {
+    toast(`Atualização disponível: ${status.latestTag || status.latestVersion}`, 'info');
+    openModal('modalUpdate');
+    return;
+  }
+
+  if (status.state === 'UpToDate') {
+    toast(`ProxyEdu já está atualizado na versão ${status.currentVersion || 'atual'}.`, 'success');
+    return;
+  }
+
+  toast(status.message || 'Verificação de atualização concluída.', 'info');
 }
 
 async function downloadUpdate() {
@@ -1688,6 +1743,7 @@ async function downloadUpdate() {
     return;
   }
   updateStatus = status;
+  renderUpdateDashboard(status);
   renderUpdateStatus(status);
   if (status.state === 'Downloaded') {
     toast('Atualização pronta para instalação.', 'success');
@@ -1697,7 +1753,11 @@ async function downloadUpdate() {
 async function installUpdate() {
   if (!confirm('Instalar a atualização agora? O ProxyEdu será fechado e reiniciado automaticamente.')) return;
   const status = await api('POST', '/update/install');
-  if (status) renderUpdateStatus(status);
+  if (status) {
+    updateStatus = status;
+    renderUpdateDashboard(status);
+    renderUpdateStatus(status);
+  }
   toast('Instalação iniciada. O serviço será reiniciado.', 'info');
 }
 
@@ -1706,6 +1766,7 @@ async function pollUpdateProgress() {
     const status = await api('GET', '/update');
     if (!status) return;
     updateStatus = status;
+    renderUpdateDashboard(status);
     renderUpdateStatus(status);
     if (!['Downloading', 'Checking'].includes(status.state)) return;
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1725,6 +1786,29 @@ function renderUpdateStatus(status) {
       ? `${status.progressPercent || 0}% (${formatBytes(status.downloadedBytes)} de ${status.totalBytes ? formatBytes(status.totalBytes) : 'tamanho desconhecido'})`
       : status.message || 'Aguardando download';
   document.getElementById('installUpdateBtn').style.display = status.state === 'Downloaded' ? 'inline-flex' : 'none';
+}
+
+function renderUpdateDashboard(status) {
+  const versionEl = document.getElementById('update-current-version');
+  const statusEl = document.getElementById('update-version-status');
+  if (!versionEl || !statusEl) return;
+
+  versionEl.textContent = status.currentVersion || 'AUTO';
+
+  const latest = status.latestTag || status.latestVersion;
+  const stateText = {
+    Idle: 'aguardando verificação',
+    Checking: 'verificando agora',
+    UpToDate: 'atualizado',
+    Available: latest ? `nova ${latest} disponível` : 'atualização disponível',
+    Downloading: `${status.progressPercent || 0}% baixado`,
+    Downloaded: 'pronta para instalar',
+    Installing: 'instalando',
+    Restarting: 'reiniciando',
+    Failed: 'falha na atualização'
+  };
+
+  statusEl.textContent = stateText[status.state] || status.message || 'status desconhecido';
 }
 
 // ─── SIGNALR ──────────────────────────────────────────────────
