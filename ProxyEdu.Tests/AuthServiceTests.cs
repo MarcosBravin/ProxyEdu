@@ -4,7 +4,7 @@ using Xunit;
 namespace ProxyEdu.Tests;
 
 /// <summary>
-/// Tests for PasswordHasher - a pure utility class that doesn't need mocking.
+/// Tests for PasswordHasher - a pure utility class that doesn't need mocking.0
 /// AuthService tests require complex LiteDB mocking, covered by integration tests.
 /// </summary>
 public class AuthServiceTests

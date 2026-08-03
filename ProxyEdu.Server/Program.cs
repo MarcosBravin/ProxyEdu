@@ -4,7 +4,7 @@ using ProxyEdu.Server.Security;
 using ProxyEdu.Server.Services;
 using ProxyEdu.Shared.Services;
 
-// Helper to check if an IP address is in private network ranges
+// Helper to check if an IP address is in private network ranges 0
 static bool IsPrivateNetwork(IPAddress ip)
 {
     if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)

@@ -3,7 +3,7 @@ using ProxyEdu.Shared.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Configuração do serviço de proteção
+// Configuração do serviço de proteção 0
 builder.Services.AddSingleton(sp => new HttpClient { Timeout = TimeSpan.FromMinutes(10) });
 builder.Services.AddSingleton<UpdateService>();
 builder.Services.AddSingleton<ServerEndpointResolver>();

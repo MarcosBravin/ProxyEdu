@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ProxyEdu.Shared.Utils;
 
 /// <summary>
-/// Utility class for managing Windows proxy settings via Registry and WinINet API.
+/// Utility class for managing Windows proxy settings via Registry and WinINet API. 0
 /// Centralizes all proxy configuration logic used by both ProxyClientService and ProxyProtectionService.
 /// </summary>
 public static class WindowsProxyManager

@@ -4,7 +4,7 @@ obj/
 publish/
 artifacts/
 
-# Visual Studio / Rider / VS Code local state
+# Visual Studio / Rider / VS Code local state0
 .vs/
 .idea/
 .vscode/
