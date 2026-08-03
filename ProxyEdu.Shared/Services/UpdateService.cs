@@ -2,7 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -22,8 +21,8 @@ public sealed class UpdateService : BackgroundService
 
     private GithubRelease? _latestRelease;
     private GithubReleaseAsset? _selectedAsset;
-    private string? _downloadedArchivePath;
-    private string? _extractedDirectory;
+    private string? _downloadedPackagePath;
+    private UpdatePackageType _downloadedPackageType = UpdatePackageType.Unknown;
     private long _downloadedBytes;
     private long _totalBytes;
 
@@ -107,13 +106,14 @@ public sealed class UpdateService : BackgroundService
 
             if (_selectedAsset is null || string.IsNullOrWhiteSpace(_selectedAsset.BrowserDownloadUrl))
             {
-                throw new InvalidOperationException("Nenhum arquivo ZIP foi encontrado na ultima release.");
+                throw new InvalidOperationException("Nenhum instalador ProxyEdu foi encontrado na ultima release.");
             }
 
             var updateDirectory = GetUpdateWorkingDirectory();
             Directory.CreateDirectory(updateDirectory);
 
-            var archivePath = Path.Combine(updateDirectory, _selectedAsset.Name);
+            var packagePath = Path.Combine(updateDirectory, _selectedAsset.Name);
+            var packageType = ResolvePackageType(_selectedAsset.Name);
             Status = Status with
             {
                 State = UpdateState.Downloading,
@@ -132,7 +132,7 @@ public sealed class UpdateService : BackgroundService
 
             _totalBytes = response.Content.Headers.ContentLength ?? 0;
             await using var remote = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var local = File.Create(archivePath);
+            await using var local = File.Create(packagePath);
 
             var buffer = new byte[81920];
             _downloadedBytes = 0;
@@ -152,37 +152,30 @@ public sealed class UpdateService : BackgroundService
             var expectedSha256 = Status.Sha256;
             if (!string.IsNullOrWhiteSpace(expectedSha256))
             {
-                var actualSha256 = await CalculateSha256Async(archivePath, cancellationToken);
+                var actualSha256 = await CalculateSha256Async(packagePath, cancellationToken);
                 if (!string.Equals(actualSha256, expectedSha256, StringComparison.OrdinalIgnoreCase))
                 {
-                    File.Delete(archivePath);
+                    File.Delete(packagePath);
                     throw new InvalidOperationException("SHA256 do pacote baixado nao confere com o valor informado na release.");
                 }
             }
 
-            var extractDirectory = Path.Combine(updateDirectory, "extracted");
-            if (Directory.Exists(extractDirectory))
-            {
-                Directory.Delete(extractDirectory, recursive: true);
-            }
-
-            Directory.CreateDirectory(extractDirectory);
-            ZipFile.ExtractToDirectory(archivePath, extractDirectory);
-
-            _downloadedArchivePath = archivePath;
-            _extractedDirectory = ResolveInstallSourceDirectory(extractDirectory);
+            _downloadedPackagePath = packagePath;
+            _downloadedPackageType = packageType;
 
             Status = Status with
             {
                 State = UpdateState.Downloaded,
-                Message = "Atualizacao baixada e extraida.",
-                DownloadedArchivePath = _downloadedArchivePath,
-                ExtractedDirectory = _extractedDirectory,
+                Message = packageType == UpdatePackageType.Installer
+                    ? "Instalador baixado e pronto para execucao."
+                    : "Pacote de atualizacao baixado.",
+                DownloadedPackagePath = _downloadedPackagePath,
+                PackageType = packageType.ToString(),
                 ProgressPercent = 100,
                 Error = null
             };
 
-            _logger.LogInformation("Atualizacao baixada em {ArchivePath}", archivePath);
+            _logger.LogInformation("Atualizacao baixada em {PackagePath}", packagePath);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -206,7 +199,7 @@ public sealed class UpdateService : BackgroundService
         await _operationLock.WaitAsync(cancellationToken);
         try
         {
-            if (string.IsNullOrWhiteSpace(_extractedDirectory) || !Directory.Exists(_extractedDirectory))
+            if (string.IsNullOrWhiteSpace(_downloadedPackagePath) || !File.Exists(_downloadedPackagePath))
             {
                 throw new InvalidOperationException("Nenhuma atualizacao baixada esta pronta para instalacao.");
             }
@@ -224,12 +217,14 @@ public sealed class UpdateService : BackgroundService
                 "backups",
                 $"{Path.GetFileNameWithoutExtension(processPath)}-{DateTime.UtcNow:yyyyMMddHHmmss}");
 
-            var scriptPath = CreateInstallerScript(appDirectory, _extractedDirectory, backupDirectory, processPath);
+            var scriptPath = _downloadedPackageType == UpdatePackageType.Installer
+                ? CreateInstallerRunnerScript(appDirectory, _downloadedPackagePath, backupDirectory, processPath, GetSettings().InstallerArguments)
+                : CreateUnsupportedPackageScript(appDirectory, _downloadedPackagePath, backupDirectory, processPath);
 
             Status = Status with
             {
                 State = UpdateState.Installing,
-                Message = "Instalacao preparada. A aplicacao sera encerrada para atualizar os arquivos.",
+                Message = "Instalacao preparada. A aplicacao sera encerrada para executar o instalador.",
                 BackupDirectory = backupDirectory,
                 Error = null
             };
@@ -316,6 +311,7 @@ public sealed class UpdateService : BackgroundService
             AssetName = asset?.Name,
             AssetUrl = asset?.BrowserDownloadUrl,
             Sha256 = ResolveSha256(release, asset),
+            PackageType = asset is null ? "" : ResolvePackageType(asset.Name).ToString(),
             ProgressPercent = 0,
             DownloadedBytes = 0,
             TotalBytes = 0,
@@ -361,6 +357,7 @@ public sealed class UpdateService : BackgroundService
             Owner = _configuration["Updater:Owner"] ?? "",
             Repository = _configuration["Updater:Repository"] ?? "",
             CurrentVersion = _configuration["Updater:CurrentVersion"] ?? "AUTO",
+            InstallerArguments = _configuration["Updater:InstallerArguments"] ?? "/S",
             CheckOnStartup = string.IsNullOrWhiteSpace(checkOnStartupText) ||
                 bool.TryParse(checkOnStartupText, out var checkOnStartup) && checkOnStartup
         };
@@ -370,9 +367,13 @@ public sealed class UpdateService : BackgroundService
     {
         return release.Assets
             .Where(a => !string.IsNullOrWhiteSpace(a.BrowserDownloadUrl))
-            .OrderByDescending(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(a => string.Equals(a.Name, "ProxyEduInstaller.exe", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(a => a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
             .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(a =>
+                a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
+                a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
     }
 
     private static SemanticVersion ResolveCurrentVersion(UpdaterSettings settings)
@@ -448,23 +449,27 @@ public sealed class UpdateService : BackgroundService
             "updates");
     }
 
-    private static string ResolveInstallSourceDirectory(string extractDirectory)
+    private static UpdatePackageType ResolvePackageType(string assetName)
     {
-        var filesInRoot = Directory.GetFiles(extractDirectory);
-        var directoriesInRoot = Directory.GetDirectories(extractDirectory);
-        if (filesInRoot.Length == 0 && directoriesInRoot.Length == 1)
+        if (assetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
         {
-            return directoriesInRoot[0];
+            return UpdatePackageType.Installer;
         }
 
-        return extractDirectory;
+        if (assetName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            return UpdatePackageType.Zip;
+        }
+
+        return UpdatePackageType.Unknown;
     }
 
-    private static string CreateInstallerScript(
+    private static string CreateInstallerRunnerScript(
         string appDirectory,
-        string sourceDirectory,
+        string installerPath,
         string backupDirectory,
-        string executablePath)
+        string executablePath,
+        string installerArguments)
     {
         var scriptDirectory = GetUpdateWorkingDirectory();
         Directory.CreateDirectory(scriptDirectory);
@@ -476,7 +481,8 @@ public sealed class UpdateService : BackgroundService
 param([int]$ProcessId)
 $ErrorActionPreference = 'Stop'
 $appDir = {{ToPowerShellString(appDirectory)}}
-$sourceDir = {{ToPowerShellString(sourceDirectory)}}
+$installerPath = {{ToPowerShellString(installerPath)}}
+$installerArguments = {{ToPowerShellString(installerArguments)}}
 $backupDir = {{ToPowerShellString(backupDirectory)}}
 $exePath = {{ToPowerShellString(executablePath)}}
 $logPath = {{ToPowerShellString(logPath)}}
@@ -495,11 +501,13 @@ try {
     New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
     Copy-Item -Path (Join-Path $appDir '*') -Destination $backupDir -Recurse -Force
 
-    Write-InstallLog "Copiando nova versao de $sourceDir para $appDir."
-    Copy-Item -Path (Join-Path $sourceDir '*') -Destination $appDir -Recurse -Force
+    Write-InstallLog "Executando instalador $installerPath $installerArguments."
+    $installer = Start-Process -FilePath $installerPath -ArgumentList $installerArguments -Wait -PassThru
+    if ($installer.ExitCode -ne 0) {
+        throw "Instalador retornou codigo $($installer.ExitCode)."
+    }
 
-    Write-InstallLog "Reiniciando aplicacao."
-    Start-Process -FilePath $exePath -WorkingDirectory $appDir
+    Write-InstallLog "Instalador finalizado com sucesso."
     Write-InstallLog "Atualizacao concluida."
 }
 catch {
@@ -521,6 +529,16 @@ catch {
         return scriptPath;
     }
 
+    private static string CreateUnsupportedPackageScript(
+        string appDirectory,
+        string packagePath,
+        string backupDirectory,
+        string executablePath)
+    {
+        throw new InvalidOperationException(
+            $"O pacote '{Path.GetFileName(packagePath)}' nao e um instalador executavel. Publique ProxyEduInstaller.exe nos assets da release.");
+    }
+
     private static string ToPowerShellString(string value)
     {
         return "'" + value.Replace("'", "''", StringComparison.Ordinal) + "'";
@@ -539,11 +557,11 @@ public sealed record UpdateStatus
     public string? AssetName { get; init; }
     public string? AssetUrl { get; init; }
     public string? Sha256 { get; init; }
+    public string PackageType { get; init; } = "";
     public int ProgressPercent { get; init; }
     public long DownloadedBytes { get; init; }
     public long TotalBytes { get; init; }
-    public string? DownloadedArchivePath { get; init; }
-    public string? ExtractedDirectory { get; init; }
+    public string? DownloadedPackagePath { get; init; }
     public string? BackupDirectory { get; init; }
     public DateTime? CheckedAtUtc { get; init; }
     public string? Error { get; init; }
@@ -569,6 +587,14 @@ public sealed class UpdaterSettings
     public string Repository { get; set; } = "";
     public string CurrentVersion { get; set; } = "AUTO";
     public bool CheckOnStartup { get; set; } = true;
+    public string InstallerArguments { get; set; } = "/S";
+}
+
+internal enum UpdatePackageType
+{
+    Unknown,
+    Installer,
+    Zip
 }
 
 internal sealed class GithubRelease
