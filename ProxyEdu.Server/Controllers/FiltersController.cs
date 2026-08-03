@@ -54,11 +54,11 @@ public class FiltersController : ControllerBase
     public IActionResult Import([FromBody] ImportRulesRequest request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Content))
-            return BadRequest("Conteudo para importacao nao informado.");
+            return BadRequest("Conteúdo para importação não informado.");
 
         var patterns = ParsePatterns(request.Content);
         if (patterns.Count == 0)
-            return BadRequest("Nenhum padrao valido encontrado para importacao.");
+            return BadRequest("Nenhum padrão válido encontrado para importação.");
 
         var scopeGroup = string.IsNullOrWhiteSpace(request.ApplyToGroup) ? null : request.ApplyToGroup.Trim();
         var scopeStudent = string.IsNullOrWhiteSpace(request.ApplyToStudentId) ? null : request.ApplyToStudentId.Trim();

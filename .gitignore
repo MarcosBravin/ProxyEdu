@@ -40,3 +40,7 @@ appsettings.Local.json
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local notes and generated documentation
+docs/
+TODO.md

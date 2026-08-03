@@ -174,7 +174,7 @@ public class ServerEndpointResolver
                 ex.SocketErrorCode == SocketError.AddressFamilyNotSupported)
             {
                 _logger.LogWarning(
-                    "Discovery UDP indisponivel nesta rede (tentativa {Attempt}/3): {SocketError}",
+                    "Discovery UDP indisponível nesta rede (tentativa {Attempt}/3): {SocketError}",
                     attempt,
                     ex.SocketErrorCode);
             }

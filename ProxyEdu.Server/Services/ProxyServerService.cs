@@ -492,7 +492,7 @@ public class ProxyServerService : BackgroundService
                 throw new InvalidOperationException("A CA raiz do proxy não está disponível ou está fora do período de validade.");
             }
 
-            _logger.LogInformation("Certificado raiz do proxy garantido/confiavel.");
+            _logger.LogInformation("Certificado raiz do proxy garantido/confiável.");
         }
         catch (Exception ex)
         {

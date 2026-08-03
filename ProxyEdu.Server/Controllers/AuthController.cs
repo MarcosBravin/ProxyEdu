@@ -189,7 +189,7 @@ public class UsersController : ControllerBase
         var current = HttpContext.GetAuthenticatedUser();
         if (current is not null && string.Equals(current.Id, id, StringComparison.Ordinal))
         {
-            return BadRequest("Nao e permitido remover o proprio usuario logado.");
+            return BadRequest("Não é permitido remover o próprio usuário logado.");
         }
 
         _authService.DeleteUser(id);

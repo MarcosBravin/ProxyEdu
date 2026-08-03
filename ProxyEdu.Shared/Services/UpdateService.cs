@@ -106,7 +106,7 @@ public sealed class UpdateService : BackgroundService
 
             if (_selectedAsset is null || string.IsNullOrWhiteSpace(_selectedAsset.BrowserDownloadUrl))
             {
-                throw new InvalidOperationException("Nenhum instalador ProxyEdu foi encontrado na ultima release.");
+                throw new InvalidOperationException("Nenhum instalador ProxyEdu foi encontrado na última release.");
             }
 
             var updateDirectory = GetUpdateWorkingDirectory();
@@ -156,7 +156,7 @@ public sealed class UpdateService : BackgroundService
                 if (!string.Equals(actualSha256, expectedSha256, StringComparison.OrdinalIgnoreCase))
                 {
                     File.Delete(packagePath);
-                    throw new InvalidOperationException("SHA256 do pacote baixado nao confere com o valor informado na release.");
+                    throw new InvalidOperationException("SHA256 do pacote baixado não confere com o valor informado na release.");
                 }
             }
 
@@ -168,24 +168,24 @@ public sealed class UpdateService : BackgroundService
                 State = UpdateState.Downloaded,
                 Message = packageType == UpdatePackageType.Installer
                     ? "Instalador baixado e pronto para execucao."
-                    : "Pacote de atualizacao baixado.",
+                    : "Pacote de atualização baixado.",
                 DownloadedPackagePath = _downloadedPackagePath,
                 PackageType = packageType.ToString(),
                 ProgressPercent = 100,
                 Error = null
             };
 
-            _logger.LogInformation("Atualizacao baixada em {PackagePath}", packagePath);
+            _logger.LogInformation("Atualização baixada em {PackagePath}", packagePath);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Status = Status with
             {
                 State = UpdateState.Failed,
-                Message = "Falha ao baixar atualizacao.",
+                Message = "Falha ao baixar atualização.",
                 Error = ex.Message
             };
-            _logger.LogError(ex, "Falha ao baixar atualizacao");
+            _logger.LogError(ex, "Falha ao baixar atualização");
             throw;
         }
         finally
@@ -201,13 +201,13 @@ public sealed class UpdateService : BackgroundService
         {
             if (string.IsNullOrWhiteSpace(_downloadedPackagePath) || !File.Exists(_downloadedPackagePath))
             {
-                throw new InvalidOperationException("Nenhuma atualizacao baixada esta pronta para instalacao.");
+                throw new InvalidOperationException("Nenhuma atualização baixada está pronta para instalação.");
             }
 
             var processPath = Environment.ProcessPath;
             if (string.IsNullOrWhiteSpace(processPath) || !File.Exists(processPath))
             {
-                throw new InvalidOperationException("Nao foi possivel identificar o executavel atual.");
+                throw new InvalidOperationException("Não foi possível identificar o executável atual.");
             }
 
             var appDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -224,7 +224,7 @@ public sealed class UpdateService : BackgroundService
             Status = Status with
             {
                 State = UpdateState.Installing,
-                Message = "Instalacao preparada. A aplicacao sera encerrada para executar o instalador.",
+                Message = "Instalação preparada. A aplicação será encerrada para executar o instalador.",
                 BackupDirectory = backupDirectory,
                 Error = null
             };
@@ -239,7 +239,7 @@ public sealed class UpdateService : BackgroundService
             };
 
             Process.Start(startInfo);
-            _logger.LogWarning("Instalacao de atualizacao iniciada. Backup: {BackupDirectory}", backupDirectory);
+            _logger.LogWarning("Instalação de atualização iniciada. Backup: {BackupDirectory}", backupDirectory);
 
             _ = Task.Run(async () =>
             {
@@ -258,7 +258,7 @@ public sealed class UpdateService : BackgroundService
         Status = Status with
         {
             State = UpdateState.Restarting,
-            Message = "Encerrando aplicacao para concluir a atualizacao."
+            Message = "Encerrando aplicação para concluir a atualização."
         };
 
         _applicationLifetime.StopApplication();
@@ -301,8 +301,8 @@ public sealed class UpdateService : BackgroundService
         {
             State = updateAvailable ? UpdateState.Available : UpdateState.UpToDate,
             Message = updateAvailable
-                ? $"Atualizacao disponivel: {release.TagName}"
-                : "Aplicacao atualizada.",
+                ? $"Atualização disponível: {release.TagName}"
+                : "Aplicação atualizada.",
             CurrentVersion = current.ToString(),
             LatestVersion = latest.ToString(),
             LatestTag = release.TagName,
@@ -322,14 +322,14 @@ public sealed class UpdateService : BackgroundService
         if (updateAvailable)
         {
             _logger.LogWarning(
-                "Atualizacao disponivel: {CurrentVersion} -> {LatestVersion}. Changelog: {Changelog}",
+                "Atualização disponível: {CurrentVersion} -> {LatestVersion}. Changelog: {Changelog}",
                 current,
                 latest,
                 release.Body);
         }
         else
         {
-            _logger.LogInformation("Nenhuma atualizacao disponivel. Versao atual: {Version}", current);
+            _logger.LogInformation("Nenhuma atualização disponível. Versão atual: {Version}", current);
         }
     }
 
@@ -508,10 +508,10 @@ try {
     }
 
     Write-InstallLog "Instalador finalizado com sucesso."
-    Write-InstallLog "Atualizacao concluida."
+    Write-InstallLog "Atualização concluída."
 }
 catch {
-    Write-InstallLog "Falha na atualizacao: $($_.Exception.Message)"
+    Write-InstallLog "Falha na atualização: $($_.Exception.Message)"
     try {
         if (Test-Path -LiteralPath $backupDir) {
             Write-InstallLog "Restaurando backup."
@@ -536,7 +536,7 @@ catch {
         string executablePath)
     {
         throw new InvalidOperationException(
-            $"O pacote '{Path.GetFileName(packagePath)}' nao e um instalador executavel. Publique ProxyEduInstaller.exe nos assets da release.");
+            $"O pacote '{Path.GetFileName(packagePath)}' não é um instalador executável. Publique ProxyEduInstaller.exe nos assets da release.");
     }
 
     private static string ToPowerShellString(string value)

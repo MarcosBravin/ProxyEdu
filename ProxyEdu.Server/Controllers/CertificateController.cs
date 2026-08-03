@@ -46,7 +46,7 @@ public class CertificateController : ControllerBase
         var cert = _proxyServerService.GetRootCertificate();
         if (cert is null)
         {
-            return NotFound(new { message = "Certificado raiz ainda nao foi inicializado." });
+            return NotFound(new { message = "Certificado raiz ainda não foi inicializado." });
         }
 
         var certBytes = cert.Export(X509ContentType.Cert);

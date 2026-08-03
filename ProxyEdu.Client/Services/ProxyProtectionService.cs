@@ -72,7 +72,7 @@ public class ProxyProtectionService : BackgroundService
                 if (intentionalFailOpen)
                 {
                     // Client intencionalmente em fail-open (servidor offline).
-                    // ProtectionService nao deve forçar proxy.
+                    // ProtectionService não deve forçar proxy.
                     _logger.LogDebug("Client em fail-open intencional, protection não vai forçar proxy");
                     
                     // Ainda detectar bypass para logging, mas sem forçar proxy

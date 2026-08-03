@@ -112,7 +112,7 @@ public class ProxyClientService : BackgroundService
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning("Servidor indisponivel: {Message}", ex.Message);
+                _logger.LogWarning("Servidor indisponível: {Message}", ex.Message);
                 _endpointResolver.Invalidate();
                 DisableProxyFailOpen();
             }
@@ -205,9 +205,9 @@ public class ProxyClientService : BackgroundService
 
         _hubConnection.Reconnecting += ex =>
         {
-            _logger.LogWarning("Conexao com servidor em reconexao: {Message}", ex?.Message);
-            // Nao desabilitar o proxy durante reconexao automatica
-            // O proxy permanece ativo ate que a reconexao falhe definitivamente
+            _logger.LogWarning("Conexão com servidor em reconexão: {Message}", ex?.Message);
+            // Não desabilitar o proxy durante reconexão automática
+            // O proxy permanece ativo até que a reconexão falhe definitivamente
             return Task.CompletedTask;
         };
 
@@ -221,9 +221,9 @@ public class ProxyClientService : BackgroundService
         _hubConnection.Closed += ex =>
         {
             Interlocked.Exchange(ref _needsRegistration, 1);
-            _logger.LogWarning("Conexao com servidor encerrada: {Message}", ex?.Message);
+            _logger.LogWarning("Conexão com servidor encerrada: {Message}", ex?.Message);
             _endpointResolver.Invalidate();
-            // Nao desabilitar o proxy imediatamente - o loop principal
+            // Não desabilitar o proxy imediatamente - o loop principal
             // tentara reconectar no proximo ciclo e decidira se deve
             // manter ou remover o proxy baseado no estado da conexao
             return Task.CompletedTask;
@@ -295,7 +295,7 @@ public class ProxyClientService : BackgroundService
 
         if (!installed)
         {
-            throw new InvalidOperationException("Nao foi possivel instalar certificado raiz do proxy.");
+            throw new InvalidOperationException("Não foi possível instalar certificado raiz do proxy.");
         }
 
         _trustedRootThumbprint = thumbprint;

@@ -71,7 +71,7 @@ public class AuthService
     {
         if (_db.Users.Exists(u => u.Username == username))
         {
-            throw new InvalidOperationException("Usuario ja existe.");
+            throw new InvalidOperationException("Usuário já existe.");
         }
 
         var (hash, salt) = PasswordHasher.HashPassword(password);
@@ -91,13 +91,13 @@ public class AuthService
 
     public DashboardUser UpdateUser(string id, string? username, string? password, DashboardUserRole? role, bool? isActive)
     {
-        var user = _db.Users.FindById(id) ?? throw new InvalidOperationException("Usuario nao encontrado.");
+        var user = _db.Users.FindById(id) ?? throw new InvalidOperationException("Usuário não encontrado.");
 
         if (!string.IsNullOrWhiteSpace(username) && !string.Equals(username, user.Username, StringComparison.Ordinal))
         {
             if (_db.Users.Exists(u => u.Username == username && u.Id != id))
             {
-                throw new InvalidOperationException("Nome de usuario ja em uso.");
+                throw new InvalidOperationException("Nome de usuário já em uso.");
             }
 
             user.Username = username.Trim();
