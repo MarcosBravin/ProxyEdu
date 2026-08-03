@@ -19,6 +19,7 @@ public class ProxyProtectionService : BackgroundService
     
     private string? _lastProxyServer;
     private bool _lastEnabled;
+    private DateTime _lastProxyApplyUtc = DateTime.MinValue;
     private int _consecutiveFailures;
     private bool _serverAvailable;
     
@@ -158,9 +159,13 @@ public class ProxyProtectionService : BackgroundService
 
             if (shouldEnforce)
             {
-                if (!_lastEnabled || !string.Equals(_lastProxyServer, proxyAddress, StringComparison.OrdinalIgnoreCase))
+                var shouldReapply = DateTime.UtcNow - _lastProxyApplyUtc >= TimeSpan.FromSeconds(30);
+                if (shouldReapply ||
+                    !_lastEnabled ||
+                    !string.Equals(_lastProxyServer, proxyAddress, StringComparison.OrdinalIgnoreCase))
                 {
                     WindowsProxyManager.SetProxy(proxyAddress, true);
+                    _lastProxyApplyUtc = DateTime.UtcNow;
                     _logger.LogInformation("Proxy reconciliado: {ProxyAddress}", proxyAddress);
                 }
                 _lastProxyServer = proxyAddress;
@@ -182,6 +187,7 @@ public class ProxyProtectionService : BackgroundService
                 if (_failClosed && !string.IsNullOrEmpty(_lastProxyServer))
                 {
                     WindowsProxyManager.SetProxy(_lastProxyServer, true);
+                    _lastProxyApplyUtc = DateTime.UtcNow;
                     _logger.LogWarning("Fail-closed: mantendo último proxy conhecido: {Proxy}", _lastProxyServer);
                 }
             }

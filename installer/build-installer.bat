@@ -5,8 +5,8 @@ set SCRIPT_DIR=%~dp0
 set REPO_DIR=%SCRIPT_DIR%..
 set NSI_FILE=%SCRIPT_DIR%ProxyEduInstaller.nsi
 set OUT_DIR=%REPO_DIR%\artifacts\installer
-set APP_VERSION=1.1.7
-set APP_FILE_VERSION=1.1.7.0
+set APP_VERSION=1.1.12
+set APP_FILE_VERSION=1.1.12.0
 set SIGN_CERT_THUMBPRINT=
 
 :parse_args
@@ -47,8 +47,8 @@ echo Uso:
 echo   installer\build-installer.bat [-Version 1.2.3] [-FileVersion 1.2.3.0] [-SignThumbprint SHA1]
 echo.
 echo Exemplos:
-echo   installer\build-installer.bat -Version 1.1.7 -FileVersion 1.1.7.0
-echo   installer\build-installer.bat -Version 1.1.7 -SignThumbprint ABCDEF123456...
+echo   installer\build-installer.bat -Version 1.1.12 -FileVersion 1.1.12.0
+echo   installer\build-installer.bat -Version 1.1.12 -SignThumbprint ABCDEF123456...
 exit /b 1
 
 :args_done

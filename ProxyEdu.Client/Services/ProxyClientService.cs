@@ -22,6 +22,7 @@ public class ProxyClientService : BackgroundService
     private readonly string? _pinnedRootThumbprint;
     private bool _warnedUnpinnedCertificate;
     private bool _proxyEnabled;
+    private bool _proxyAppliedThisRun;
     private int _needsRegistration = 1;
     private long _lastNetworkGeneration = -1;
 
@@ -65,6 +66,7 @@ public class ProxyClientService : BackgroundService
                 var endpoint = await _endpointResolver.ResolveAsync(stoppingToken);
                 var proxyAddress = $"{endpoint.Ip}:{endpoint.ProxyPort}";
 
+                EnsureProxyEnabled(proxyAddress);
                 await EnsureProxyRootCertificateTrustedAsync(endpoint, stoppingToken);
                 await EnsureHubConnectionAsync(endpoint, stoppingToken);
 
@@ -140,7 +142,9 @@ public class ProxyClientService : BackgroundService
 
     private void EnsureProxyEnabled(string proxyAddress)
     {
-        if (_proxyEnabled && string.Equals(_currentProxyAddress, proxyAddress, StringComparison.OrdinalIgnoreCase))
+        if (_proxyAppliedThisRun &&
+            _proxyEnabled &&
+            string.Equals(_currentProxyAddress, proxyAddress, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -148,6 +152,7 @@ public class ProxyClientService : BackgroundService
         WindowsProxyManager.SetProxy(proxyAddress, true);
         _currentProxyAddress = proxyAddress;
         _proxyEnabled = true;
+        _proxyAppliedThisRun = true;
         // Sincronizar com o coordenador global para o ProxyProtectionService
         ProxyStateCoordinator.SetProxyEnabled(proxyAddress);
         _logger.LogInformation("Proxy configurado: {ProxyAddress}", proxyAddress);
@@ -172,6 +177,7 @@ public class ProxyClientService : BackgroundService
 
         WindowsProxyManager.SetProxy("", false);
         _proxyEnabled = false;
+        _proxyAppliedThisRun = true;
         _currentProxyAddress = null;
         // Sincronizar com o coordenador global para o ProxyProtectionService
         ProxyStateCoordinator.SetProxyDisabled("Servidor offline");
