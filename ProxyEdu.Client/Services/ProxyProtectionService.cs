@@ -147,7 +147,7 @@ public class ProxyProtectionService : BackgroundService
             if (!_serverAvailable && _failClosed)
             {
                 // Em modo fail-closed, manter último proxy conhecido
-                shouldEnforce = !string.IsNullOrEmpty(_lastProxyServer);
+                shouldEnforce = true;
                 proxyAddress = _lastProxyServer ?? proxyAddress;
             }
             else if (!_serverAvailable && !_failClosed)

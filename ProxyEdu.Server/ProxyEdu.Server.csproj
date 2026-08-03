@@ -4,6 +4,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ProxyEdu.Server</RootNamespace>
+    <Version>1.1.9</Version>
+    <AssemblyVersion>1.1.9.0</AssemblyVersion>
+    <FileVersion>1.1.9.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />

@@ -132,7 +132,10 @@ public class ProxyClientService : BackgroundService
             _retryDelayMs = Math.Min((int)(_retryDelayMs * 1.5), MaxRetryDelayMs);
         }
 
-        WindowsProxyManager.SetProxy("", false);
+        if (!_failClosed)
+        {
+            WindowsProxyManager.SetProxy("", false);
+        }
     }
 
     private void EnsureProxyEnabled(string proxyAddress)
@@ -398,7 +401,10 @@ public class ProxyClientService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        WindowsProxyManager.SetProxy("", false);
+        if (!_failClosed)
+        {
+            WindowsProxyManager.SetProxy("", false);
+        }
         if (_hubConnection is not null)
         {
             await DisposeHubAsync(cancellationToken);
