@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ProxyEdu">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#35d5ef"/>
+      <stop offset="1" stop-color="#1684ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="17" fill="#0b1b30"/>
+  <path d="M17 21.5 32 14l15 7.5v18L32 50l-15-10.5z" fill="none" stroke="url(#g)" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m22 27 10-5 10 5-10 5z" fill="url(#g)"/>
+  <path d="M24.5 31v7.5c4.5 3.6 10.5 3.6 15 0V31" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+</svg>
