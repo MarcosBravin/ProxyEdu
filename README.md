@@ -1,83 +1,88 @@
-# ProxyEdu — Sistema de Controle de Acesso Escolar
+# ProxyEdu
 
-Sistema completo de proxy educacional para controle de acesso à internet em sala de aula.
+ProxyEdu é uma solução de controle de acesso à internet para ambientes educacionais. A aplicação centraliza, no computador do professor ou administrador, um servidor proxy com dashboard web, API administrativa, regras de bloqueio/liberação e acompanhamento das estações dos alunos.
 
----
+## Visão Geral
 
-## 🏗️ Arquitetura
-
-```
-[PC Aluno 1] ─┐
-[PC Aluno 2] ─┼──► [PC Professor - ProxyEdu Server] ◄── [Dashboard http://localhost:5000]
-[PC Aluno 3] ─┘       (proxy na porta 8888)
+```text
+[PC Aluno 1] --\
+[PC Aluno 2] ----> [PC Professor - ProxyEdu Server] <---- [Dashboard Web]
+[PC Aluno 3] --/       Proxy: 8888 | Dashboard: 5000
 ```
 
----
+O servidor executa o proxy, expõe o dashboard em `http://localhost:5000` e recebe informações dos clientes instalados nas máquinas dos alunos. O cliente configura o proxy do Windows, envia heartbeats ao servidor e pode localizar automaticamente o servidor na rede local.
 
-## 📦 Projetos
+## Estrutura do Repositório
 
-| Projeto | Descrição |
+| Caminho | Descrição |
 |---|---|
-| `ProxyEdu.Server` | Servidor proxy + API REST + Dashboard Web |
-| `ProxyEdu.Client` | Serviço Windows instalado nos alunos |
-| `ProxyEdu.Shared` | Modelos compartilhados |
+| `ProxyEdu.Server` | Servidor ASP.NET Core com proxy, API REST, SignalR, dashboard web e persistência local. |
+| `ProxyEdu.Client` | Worker Service para Windows instalado nas estações dos alunos. |
+| `ProxyEdu.Shared` | Modelos e contratos compartilhados entre cliente e servidor. |
+| `ProxyEdu.Tests` | Projeto de testes automatizados. |
+| `installer` | Script NSIS para geração do instalador Windows. |
+| `docs` | Documentação auxiliar, auditorias, planejamento e relatórios. |
 
----
+## Principais Recursos
 
-## 🚀 Instalação
+- Dashboard web para acompanhamento das estações conectadas.
+- Bloqueio e liberação de acesso por aluno, grupo ou aplicação global.
+- Regras de whitelist e blacklist com suporte a padrões.
+- Presets de bloqueio para categorias como redes sociais, jogos e streaming.
+- Logs de navegação com filtros por aluno, domínio e status.
+- Estatísticas operacionais e métricas de uso.
+- Comunicação em tempo real via SignalR.
+- Descoberta automática do servidor na rede local.
+- Execução como serviço do Windows.
+- Persistência local com LiteDB em `C:\ProgramData\ProxyEdu\data.db`.
 
-## 🛠️ CLI de Compilação
+## Tecnologias
 
-Use o CLI da raiz para compilar/publicar sem entrar em cada pasta:
+- .NET 8
+- ASP.NET Core
+- SignalR
+- Titanium.Web.Proxy
+- LiteDB
+- Windows Service
+- WinInet API
+- NSIS para empacotamento do instalador
 
-```bash
-.\build.bat
+## Pré-requisitos
+
+- Windows 10 ou Windows 11.
+- .NET 8 SDK para desenvolvimento e build.
+- Visual Studio 2022, VS Code ou outro editor compatível com .NET.
+- Permissões de administrador para instalação dos serviços.
+- NSIS 3.x, somente se for gerar o instalador em `installer`.
+
+## Configuração
+
+### Servidor
+
+O servidor escuta em todas as interfaces na porta `5000`:
+
+```json
+{
+  "Urls": "http://0.0.0.0:5000",
+  "Discovery": {
+    "Port": 50505
+  },
+  "Security": {
+    "DefaultAdminPassword": ""
+  }
+}
 ```
 
-Exemplos úteis:
+Configurações relevantes:
 
-```bash
-.\build.bat -Action restore -Target all
-.\build.bat -Action build -Target server -Configuration Debug
-.\build.bat -Action publish -Target client -Runtime win-x64 -SelfContained true
-.\build.bat -Action clean -Target all
-```
+- `Urls`: endereço usado pelo dashboard e pela API.
+- `Discovery:Port`: porta usada para descoberta automática na rede local.
+- `Security:DefaultAdminPassword`: senha inicial do usuário `admin`. Se estiver vazia, a aplicação usa a senha padrão `admin123` e exige troca no primeiro login.
 
-Parâmetros disponíveis:
-- `-Action`: `restore`, `build`, `publish`, `clean`
-- `-Target`: `all`, `server`, `client`, `shared`
-- `-Configuration`: `Debug` ou `Release`
-- `-Runtime`: RID do .NET (ex.: `win-x64`)
-- `-SelfContained`: `true`/`false` (usado em `publish`)
-- `-OutputRoot`: pasta base de saída (padrão: `.\artifacts\publish`)
+### Cliente
 
-### Pré-requisitos
-- .NET 8 SDK
-- Windows 10/11
-- Visual Studio 2022 (ou VS Code)
+O cliente usa `ProxyEdu.Client/appsettings.json` para localizar o servidor e configurar o proxy local:
 
-### 1. Servidor (PC do Professor)
-
-```bash
-cd ProxyEdu.Server
-dotnet publish -c Release -r win-x64 --self-contained -o ./publish
-```
-
-Execute `install-server.bat` como **Administrador**.
-
-Dashboard acessível em: **http://localhost:5000**
-
-Credenciais iniciais do dashboard/API administrativa (seed no banco):
-- usuário: `admin`
-- senha: `admin123`
-
-Modelo de acesso:
-- `Administrador`: pode criar/editar/remover usuários
-- `Professor`: acesso ao dashboard sem gestão de usuários
-
-### 2. Cliente (PC dos Alunos)
-
-1. Edite `ProxyEdu.Client/appsettings.json`:
 ```json
 {
   "Server": {
@@ -85,137 +90,171 @@ Modelo de acesso:
     "ProxyPort": "8888",
     "DashboardPort": "5000",
     "AutoDiscover": true,
-    "DiscoveryPort": "50505"
+    "DiscoveryPort": "50505",
+    "RootCertificateThumbprint": ""
+  },
+  "Student": {
+    "Group": "default"
+  },
+  "Protection": {
+    "CheckIntervalSeconds": 2,
+    "FailClosed": true
   }
 }
 ```
 
-`Ip` vazio + `AutoDiscover: true` faz descoberta automatica do servidor na rede local.
-Se preferir fixar, preencha `Ip` com o endereco do PC do professor e mantenha as portas.
+Com `Ip` vazio e `AutoDiscover` definido como `true`, o cliente tenta encontrar automaticamente o servidor na rede local. Para ambientes com IP fixo, preencha `Server:Ip` com o endereço do computador do professor ou servidor.
 
-2. Publique:
-```bash
-cd ProxyEdu.Client
-dotnet publish -c Release -r win-x64 --self-contained -o ./publish
+## Build
+
+Use o script da raiz para restaurar, compilar, publicar ou limpar os projetos:
+
+```powershell
+.\build.bat
 ```
 
-3. Execute `install-client.bat` como **Administrador** em cada PC de aluno.
+Exemplos:
 
----
+```powershell
+.\build.bat -Action restore -Target all
+.\build.bat -Action build -Target server -Configuration Debug
+.\build.bat -Action publish -Target client -Runtime win-x64 -SelfContained true
+.\build.bat -Action clean -Target all
+```
 
-## 📦 Instalador Profissional (NSIS)
+Parâmetros disponíveis:
 
-Foi adicionado um instalador único em `installer/ProxyEduInstaller.nsi` com seleção de componentes:
-- Cliente (serviço Windows)
-- Servidor (serviço Windows + atalho do dashboard)
+| Parâmetro | Valores |
+|---|---|
+| `-Action` | `restore`, `build`, `publish`, `clean` |
+| `-Target` | `all`, `server`, `client`, `shared` |
+| `-Configuration` | `Debug`, `Release` |
+| `-Runtime` | RID do .NET, por exemplo `win-x64` |
+| `-SelfContained` | `true` ou `false`, usado em `publish` |
+| `-OutputRoot` | Pasta base de saída. Padrão: `.\artifacts\publish` |
+
+## Publicação Manual
+
+### Servidor
+
+```powershell
+dotnet publish .\ProxyEdu.Server\ProxyEdu.Server.csproj -c Release -r win-x64 --self-contained true -o .\artifacts\publish\server
+```
+
+Depois da publicação, execute `install-server.bat` como administrador no computador do professor ou servidor.
+
+Dashboard:
+
+```text
+http://localhost:5000
+```
+
+Credenciais iniciais:
+
+```text
+Usuário: admin
+Senha: valor de Security:DefaultAdminPassword ou admin123 quando não configurado
+```
+
+Recomenda-se configurar `Security:DefaultAdminPassword` antes da primeira execução em produção.
+
+### Cliente
+
+```powershell
+dotnet publish .\ProxyEdu.Client\ProxyEdu.Client.csproj -c Release -r win-x64 --self-contained true -o .\artifacts\publish\client
+```
+
+Depois da publicação, execute `install-client.bat` como administrador em cada computador de aluno.
+
+## Instalador Windows
+
+O instalador NSIS está em `installer/ProxyEduInstaller.nsi` e permite selecionar os componentes a instalar:
+
+- Cliente como serviço do Windows.
+- Servidor como serviço do Windows com atalho para o dashboard.
 
 Para gerar o instalador:
 
-```bash
+```powershell
 installer\build-installer.bat
 ```
 
-Saída:
-- `artifacts\installer\ProxyEduInstaller.exe`
+Saída esperada:
 
-Observações:
-- Requer publish existente em `artifacts\publish\client` e `artifacts\publish\server`
-- Requer NSIS 3.x (`makensis.exe`)
-- O instalador usa o ícone `Focus_Proxy.ico`
+```text
+artifacts\installer\ProxyEduInstaller.exe
+```
 
----
+Antes de executar o build do instalador, publique cliente e servidor em:
 
-## 🗑️ Desinstalacao Total
+```text
+artifacts\publish\client
+artifacts\publish\server
+```
 
-Scripts disponiveis na raiz:
-- `uninstall-server.bat` (remove servico do servidor + dados em `C:\ProgramData\ProxyEdu`)
-- `uninstall-client.bat` (remove servico do cliente + reseta proxy do Windows)
-- `uninstall-all.bat` (executa os dois scripts em sequencia)
-
-Execute sempre como **Administrador**.
-
----
-
-## 🎛️ Funcionalidades do Dashboard
-
-### 👥 Gerenciamento de Alunos
-- Ver todos os computadores conectados em tempo real
-- Informações: Nome, IP, MAC Address, Hostname, SO, Grupo
-- Ver site atual que o aluno está acessando
-- Editar nome e grupo do aluno
-- Histórico de atividades por aluno
-
-### 🔒 Controle de Acesso
-- **Bloquear/Liberar** aluno individualmente
-- **Bloquear Todos** com um clique
-- **Liberar Todos** com um clique
-- Bloquear/Liberar por grupo (Turma A, Turma B, etc.)
-
-### ✅ Whitelist
-- Adicionar domínios sempre permitidos
-- Suporte a wildcards: `*.google.com`
-- Aplicar a aluno específico ou grupo
-- Ativar/desativar regras individualmente
-
-### 🚫 Blacklist
-- Adicionar domínios sempre bloqueados
-- Suporte a wildcards e regex
-- Presets prontos: Redes Sociais, Jogos, Streaming
-- Aplicar globalmente, por grupo ou por aluno
-
-### 📋 Logs de Acesso
-- Histórico completo de navegação
-- Filtrar por aluno, domínio, status (bloqueado/permitido)
-- Exportar logs
-- Limpeza automática configurável
-
-### 📈 Estatísticas
-- Top domínios acessados
-- Taxa de bloqueio por aluno
-- Total de dados transferidos
-- Gráficos em tempo real
-
-### ⚙️ Configurações
-- Porta do proxy
-- Modo Whitelist Total (bloqueia tudo exceto whitelist)
-- Mensagem personalizada de bloqueio
-- Retenção de logs
-
----
-
-## 🌐 API REST
+## API REST
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `/api/students` | Lista todos os alunos |
-| POST | `/api/students/{id}/block` | Bloqueia um aluno |
-| POST | `/api/students/{id}/unblock` | Libera um aluno |
-| POST | `/api/students/block-all` | Bloqueia todos |
-| POST | `/api/students/unblock-all` | Libera todos |
-| GET | `/api/filters` | Lista regras de filtro |
-| POST | `/api/filters` | Cria regra |
-| DELETE | `/api/filters/{id}` | Remove regra |
-| POST | `/api/filters/preset/{name}` | Aplica preset (social/games/streaming) |
-| GET | `/api/logs` | Logs de acesso |
-| GET | `/api/students/stats` | Estatísticas |
-| GET/PUT | `/api/settings` | Configurações |
+| `GET` | `/api/auth/me` | Retorna o usuário autenticado. |
+| `POST` | `/api/auth/change-password` | Altera a senha do usuário autenticado. |
+| `GET` | `/api/users` | Lista usuários do dashboard. |
+| `POST` | `/api/users` | Cria usuário do dashboard. |
+| `PUT` | `/api/users/{id}` | Atualiza usuário do dashboard. |
+| `DELETE` | `/api/users/{id}` | Remove usuário do dashboard. |
+| `GET` | `/api/students` | Lista alunos registrados. |
+| `GET` | `/api/students/{id}` | Retorna detalhes de um aluno. |
+| `PUT` | `/api/students/{id}` | Atualiza dados de um aluno. |
+| `POST` | `/api/students/{id}/block` | Bloqueia um aluno. |
+| `POST` | `/api/students/{id}/unblock` | Libera um aluno. |
+| `POST` | `/api/students/block-all` | Bloqueia todos os alunos. |
+| `POST` | `/api/students/unblock-all` | Libera todos os alunos. |
+| `POST` | `/api/students/group/{groupName}/block` | Bloqueia alunos de um grupo. |
+| `POST` | `/api/students/group/{groupName}/unblock` | Libera alunos de um grupo. |
+| `GET` | `/api/students/stats` | Retorna estatísticas dos alunos. |
+| `GET` | `/api/filters` | Lista regras de filtro. |
+| `POST` | `/api/filters` | Cria regra de filtro. |
+| `PUT` | `/api/filters/{id}` | Atualiza regra de filtro. |
+| `DELETE` | `/api/filters/{id}` | Remove regra de filtro. |
+| `POST` | `/api/filters/{id}/toggle` | Ativa ou desativa uma regra. |
+| `POST` | `/api/filters/preset/{name}` | Aplica preset de filtros. |
+| `GET` | `/api/logs` | Lista logs de acesso. |
+| `DELETE` | `/api/logs` | Remove logs conforme implementação do endpoint. |
+| `GET` | `/api/settings` | Retorna configurações do proxy. |
+| `PUT` | `/api/settings` | Atualiza configurações do proxy. |
+| `GET` | `/api/health` | Retorna status básico da aplicação. |
+| `GET` | `/api/health/ready` | Retorna prontidão operacional. |
+| `GET` | `/api/serverstatus` | Retorna status do servidor. |
+| `GET` | `/api/serverstatus/alerts` | Retorna alertas operacionais. |
+| `GET` | `/api/serverstatus/metrics` | Retorna métricas operacionais. |
+| `GET` | `/api/diagnostics` | Retorna informações de diagnóstico. |
+| `GET` | `/api/certificate/root` | Disponibiliza o certificado raiz do proxy. |
+| `GET` | `/api/update` | Retorna informações do atualizador. |
+| `POST` | `/api/update/check` | Verifica atualização disponível. |
+| `POST` | `/api/update/download` | Baixa atualização. |
+| `POST` | `/api/update/install` | Instala atualização. |
 
----
+## Desinstalação
 
-## 🔧 Tecnologias
+Scripts disponíveis na raiz do repositório:
 
-- **ASP.NET Core 8** — Web API + hosting estático
-- **SignalR** — Comunicação em tempo real
-- **Titanium.Web.Proxy** — Interceptação HTTP/HTTPS
-- **LiteDB** — Banco de dados embutido (sem instalação)
-- **Windows Service** — Execução em segundo plano
-- **WinInet API** — Configuração de proxy do Windows
+| Script | Finalidade |
+|---|---|
+| `uninstall-server.bat` | Remove o serviço do servidor e dados em `C:\ProgramData\ProxyEdu`. |
+| `uninstall-client.bat` | Remove o serviço do cliente e restaura a configuração de proxy do Windows. |
+| `uninstall-all.bat` | Executa a remoção do servidor e do cliente. |
 
----
+Execute os scripts de desinstalação como administrador.
 
-## 📝 Notas
+## Segurança e Operação
 
-- O cliente requer execução como **LocalSystem** para configurar o proxy do Windows
-- O serviço do cliente é protegido contra desativação por usuários padrão
-- Para HTTPS, o proxy instala um certificado raiz automaticamente (Titanium.Web.Proxy)
-- Os dados são armazenados em `C:\ProgramData\ProxyEdu\data.db`
+- Troque a senha inicial do usuário `admin` na primeira execução.
+- Configure `Security:DefaultAdminPassword` antes de implantar em produção.
+- Execute instaladores e scripts de serviço com privilégios administrativos.
+- Revise regras de firewall para permitir o dashboard, o proxy e a descoberta na rede local.
+- O proxy HTTPS utiliza certificado raiz gerenciado pelo Titanium.Web.Proxy.
+- O cliente pode operar em modo `FailClosed`, mantendo restrição quando não consegue validar o estado esperado.
+
+## Licença
+
+Consulte o arquivo `LICENSE` para os termos de uso do projeto.
