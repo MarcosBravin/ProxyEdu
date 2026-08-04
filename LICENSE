@@ -1,51 +1,47 @@
-ProxyEdu Community License (Open Core)
+PROXYEDU COMMUNITY LICENSE (OPEN CORE)
 
-Copyright (c) 2026 Marcos Bravin
+CLÁUSULA PRIMEIRA – DEFINIÇÕES
 
-1. Grant of Use
+1.1. Para fins desta Licença, os termos abaixo, quando grafados em letra maiúscula, terão o seguinte significado: (a) Software: Refere-se ao código-fonte, arquivos de configuração, scripts, documentação e binários que compõem a versão comunitária da plataforma "ProxyEdu", de titularidade exclusiva de Marcos Bravin ("Licenciante"). (b) Uso: Qualquer ato de instalar, executar, acessar, exibir ou de outra forma utilizar as funcionalidades do Software. (c) Uso Comunitário: O Uso do Software estritamente para fins pessoais, de aprendizado individual ou em ambiente educacional sem fins lucrativos, bem como para testes internos que não visem a exploração econômica direta ou indireta. (d) Uso Comercial: Qualquer Uso do Software por pessoa física ou jurídica que resulte em benefício econômico, lucro, receita, ou que seja integrado a serviços prestados a terceiros mediante remuneração, incluindo, mas não se limitando a, modelos de Software as a Service (SaaS), consultorias pagas ou suporte técnico remunerado.
 
-Permission is granted to any person or organization to use, copy, modify, and run this software for:
+CLÁUSULA SEGUNDA – CONCESSÃO DA LICENÇA
 
-- Personal use
-- Educational use
-- Internal use within an organization
+2.1. Sujeito aos termos e condições desta Licença, o Licenciante concede ao usuário ("Licenciado") uma licença não exclusiva, intransferível, revogável e isenta de royalties para o Uso Comunitário do Software.
 
-2. Restrictions
+2.2. A presente outorga é limitada ao território global, observadas as restrições de exportação aplicáveis, e vigerá por prazo indeterminado, salvo se rescindida nos termos da Cláusula Quinta.
 
-The following actions are strictly prohibited without explicit written permission from the author:
+CLÁUSULA TERCEIRA – RESTRIÇÕES DE USO E EXPLORAÇÃO
 
-- Selling this software, in whole or in part
-- Offering this software as a paid service (SaaS, hosting, subscription, etc.)
-- Redistributing this software as part of a commercial product or service
-- Rebranding and distributing as a competing product
-- Providing paid support or consulting specifically around this software
+3.1. O Licenciado não poderá, sob pena de imediata rescisão e aplicação das sanções legais cabíveis: (a) Realizar o Uso Comercial do Software sem a prévia e expressa autorização por escrito do Licenciante; (b) Comercializar, alugar, sublicenciar, arrendar ou distribuir o Software, seja de forma isolada ou integrada a outros produtos; (c) Disponibilizar o Software como um serviço gerenciado (Software as a Service - SaaS), plataforma de infraestrutura ou qualquer modalidade de computação em nuvem para terceiros; (d) Realizar o rebranding ou white-labeling do Software, devendo manter intactos todos os avisos de direitos autorais e marcas registradas; (e) Oferecer serviços de suporte técnico, manutenção ou treinamento remunerado relativos ao Software a terceiros.
 
-3. Distribution
+CLÁUSULA QUARTA – PROPRIEDADE INTELECTUAL
 
-Redistribution of this software is allowed only if:
+4.1. O Licenciado reconhece que a titularidade integral de todos os direitos de propriedade intelectual sobre o Software, incluindo direitos autorais (Lei nº 9.609/98 e Lei nº 9.610/98), segredos de negócio e marcas, pertence exclusivamente a Marcos Bravin.
 
-- It is free of charge
-- It includes this license file
-- Proper credit is given to the original author
+4.2. Esta Licença não implica a transferência de qualquer direito de propriedade sobre o Software, mas apenas uma autorização precária de uso dentro dos limites aqui estabelecidos.
 
-4. Open Core Model
+CLÁUSULA QUINTA – MODELO OPEN CORE E FUNCIONALIDADES ENTERPRISE
 
-This repository represents the Community version of ProxyEdu.
+5.1. O Licenciado declara estar ciente de que o Software é distribuído sob o modelo Open Core, o que significa que esta Licença abrange apenas o núcleo básico da aplicação.
 
-Additional features, enterprise capabilities, and commercial licenses may be offered separately by the author.
+5.2. Funcionalidades avançadas, módulos de segurança corporativa, ferramentas de escalabilidade e integrações proprietárias ("Funcionalidades Enterprise") não estão incluídas nesta Licença e exigem a celebração de um contrato de licença comercial específico e o pagamento das respectivas taxas.
 
-5. Warranty Disclaimer
+CLÁUSULA SEXTA – ISENÇÃO DE GARANTIA E LIMITAÇÃO DE RESPONSABILIDADE
 
-This software is provided "as is", without warranty of any kind, express or implied.
+6.1. O SOFTWARE É FORNECIDO "NO ESTADO EM QUE SE ENCONTRA" (AS IS), SEM QUALQUER GARANTIA DE QUALQUER NATUREZA, SEJA EXPRESSA OU IMPLÍCITA, INCLUINDO, MAS NÃO SE LIMITANDO A, GARANTIAS DE COMERCIALIZAÇÃO, ADEQUAÇÃO A UM FIM ESPECÍFICO OU NÃO INFRAÇÃO.
 
-6. Liability
+6.2. Em nenhuma hipótese o Licenciante será responsável por quaisquer danos diretos, indiretos, incidentais, especiais ou consequenciais (incluindo, mas não se limitando a, perda de lucros, interrupção de negócios ou perda de dados) decorrentes do uso ou da incapacidade de usar o Software, ainda que o Licenciante tenha sido avisado da possibilidade de tais danos.
 
-In no event shall the author be liable for any damages arising from the use of this software.
+CLÁUSULA SÉTIMA – TERMINAÇÃO
 
-7. Commercial Licensing
+7.1. Esta Licença será rescindida automaticamente, independentemente de notificação judicial ou extrajudicial, caso o Licenciado descumpra qualquer uma de suas cláusulas, especialmente no que tange às restrições de Uso Comercial.
 
-For commercial use, enterprise deployment, support, or custom development, please contact:
+7.2. Com a rescisão, o Licenciado deverá cessar imediatamente todo o Uso do Software e destruir todas as cópias em sua posse.
 
-mv-022@hotmail.com
+CLÁUSULA OITAVA – LEI APLICÁVEL E FORO
 
-By using this software, you agree to the terms of this license.
+8.1. Esta Licença é regida pelas leis da República Federativa do Brasil.
+
+8.2. Fica eleito o Foro da Comarca de São Paulo, Estado de São Paulo, com exclusão de qualquer outro, por mais privilegiado que seja, para dirimir quaisquer controvérsias oriundas deste instrumento.
+
+Premissas assumidas: O Licenciante é pessoa física e o Software é uma solução proprietária com núcleo aberto, visando proteção contra exploração por provedores de nuvem.
