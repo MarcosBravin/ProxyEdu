@@ -1,1 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ProxyEdu — controle centralizado de acesso à internet para escolas e laboratórios de informática.">
+  <meta name="theme-color" content="#080d15">
+  <meta property="og:title" content="ProxyEdu — Controle de Internet para Ambientes Educacionais">
+  <meta property="og:description" content="Gerencie alunos, regras, bloqueios e monitoramento em tempo real por meio de um painel centralizado.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/screenshots/dashboard.png">
+  <title>ProxyEdu — Controle de Internet para Escolas</title>
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container nav">
+      <a class="brand" href="#inicio"><img src="assets/logo.svg" alt="Logo ProxyEdu"><span>ProxyEdu</span></a>
+      <button class="menu" type="button" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      <nav class="links" aria-label="Navegação principal">
+        <a href="#recursos">Recursos</a>
+        <a href="#interface">Interface</a>
+        <a href="#arquitetura">Arquitetura</a>
+        <a href="#instalacao">Instalação</a>
+      </nav>
+      <a class="btn btn-small desktop" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">Ver no GitHub ↗</a>
+    </div>
+  </header>
 
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-glow"></div>
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <div class="eyebrow"><i></i> Projeto open source para educação</div>
+          <h1>Controle a internet da escola com <span>segurança e simplicidade.</span></h1>
+          <p>O ProxyEdu centraliza o monitoramento das estações, regras de acesso, bloqueios e estatísticas em um dashboard moderno para professores e administradores.</p>
+          <div class="hero-actions">
+            <a class="btn" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">Acessar repositório ↗</a>
+            <a class="btn btn-ghost" href="#interface">Conhecer a interface</a>
+          </div>
+          <div class="highlights">
+            <div><strong>Tempo real</strong><span>Estações conectadas</span></div>
+            <div><strong>Controle local</strong><span>Na rede da instituição</span></div>
+            <div><strong>Open source</strong><span>Código disponível</span></div>
+          </div>
+        </div>
+
+        <div class="hero-preview reveal delay">
+          <div class="browser">
+            <div class="browser-top"><span></span><span></span><span></span><small>ProxyEdu • Dashboard</small><b><i></i> Proxy Online</b></div>
+            <img src="assets/screenshots/dashboard.png" alt="Dashboard real do ProxyEdu" loading="eager">
+          </div>
+          <div class="float-card one"><span>12</span><div><strong>Alunos registrados</strong><small>5 conectados agora</small></div></div>
+          <div class="float-card two"><span>✓</span><div><strong>Proxy online</strong><small>Monitoramento ativo</small></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stack-strip">
+      <div class="container"><span>Construído para ambientes educacionais modernos</span><div><b>ASP.NET Core 8</b><b>SignalR</b><b>LiteDB</b><b>Windows</b><b>Rede Local</b></div></div>
+    </section>
+
+    <section class="section" id="recursos">
+      <div class="container">
+        <div class="section-head reveal"><div class="eyebrow"><i></i> Recursos principais</div><h2>Mais controle para ensinar.<br><span>Menos distrações para aprender.</span></h2><p>Uma solução centralizada para administrar a navegação dos computadores de alunos sem depender de serviços externos.</p></div>
+        <div class="features">
+          <article class="card reveal"><div class="icon">◉</div><h3>Monitoramento em tempo real</h3><p>Visualize máquinas conectadas, endereço IP, status e atividade atual diretamente no painel.</p></article>
+          <article class="card featured reveal"><div class="icon">⊘</div><h3>Blacklist e whitelist</h3><p>Bloqueie ou libere sites por domínio, padrões e listas configuráveis para toda a instituição.</p></article>
+          <article class="card reveal"><div class="icon">▦</div><h3>Presets de bloqueio</h3><p>Aplique conjuntos prontos para redes sociais, jogos e streaming com poucos cliques.</p></article>
+          <article class="card reveal"><div class="icon">⌁</div><h3>Ações centralizadas</h3><p>Bloqueie ou libere todas as estações e execute ações rápidas a partir do computador do professor.</p></article>
+          <article class="card reveal"><div class="icon">▤</div><h3>Logs e estatísticas</h3><p>Acompanhe requisições, bloqueios, domínios mais acessados e eventos recentes da rede.</p></article>
+          <article class="card reveal"><div class="icon">⚙</div><h3>Status do servidor</h3><p>Consulte CPU, memória, conexões, tráfego de rede e informações operacionais do serviço.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section showcase" id="interface">
+      <div class="container">
+        <div class="section-head reveal"><div class="eyebrow"><i></i> Interface real</div><h2>Uma visão clara de <span>toda a rede.</span></h2><p>As imagens abaixo são capturas reais do ProxyEdu em funcionamento. Clique em qualquer tela para ampliar.</p></div>
+        <div class="gallery">
+          <button class="shot shot-wide reveal" data-image="assets/screenshots/dashboard.png" data-title="Dashboard"><img src="assets/screenshots/dashboard.png" alt="Dashboard do ProxyEdu" loading="lazy"><span><b>Dashboard</b><small>Indicadores, ações rápidas e domínios mais acessados</small></span></button>
+          <button class="shot reveal" data-image="assets/screenshots/monitor.png" data-title="Monitor em tempo real"><img src="assets/screenshots/monitor.png" alt="Monitor em tempo real" loading="lazy"><span><b>Monitor em tempo real</b><small>Computadores online e offline</small></span></button>
+          <button class="shot reveal" data-image="assets/screenshots/blacklist.png" data-title="Blacklist"><img src="assets/screenshots/blacklist.png" alt="Blacklist do ProxyEdu" loading="lazy"><span><b>Blacklist</b><small>Regras por domínio e estado</small></span></button>
+          <button class="shot reveal" data-image="assets/screenshots/presets.png" data-title="Presets de bloqueio"><img src="assets/screenshots/presets.png" alt="Presets de bloqueio" loading="lazy"><span><b>Presets de bloqueio</b><small>Redes sociais, jogos e streaming</small></span></button>
+          <button class="shot reveal" data-image="assets/screenshots/servidor.png" data-title="Status do servidor"><img src="assets/screenshots/servidor.png" alt="Status do servidor" loading="lazy"><span><b>Status do servidor</b><small>Recursos, rede e conexões</small></span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section architecture" id="arquitetura">
+      <div class="container architecture-grid">
+        <div class="architecture-copy reveal"><div class="eyebrow"><i></i> Como funciona</div><h2>Arquitetura simples.<br><span>Controle eficiente.</span></h2><p>O servidor ProxyEdu roda no computador do professor ou administrador. Os clientes instalados nas estações configuram o proxy, enviam heartbeats e podem localizar automaticamente o servidor na rede local.</p>
+          <div class="steps"><div><b>01</b><span><strong>Servidor central</strong><small>Dashboard, proxy, API e persistência local.</small></span></div><div><b>02</b><span><strong>Clientes Windows</strong><small>Configuração automática e comunicação contínua.</small></span></div><div><b>03</b><span><strong>Regras aplicadas</strong><small>A navegação passa pelo controle definido pelo administrador.</small></span></div></div>
+        </div>
+        <div class="diagram reveal delay">
+          <div class="diagram-title">REDE EDUCACIONAL</div>
+          <div class="node server"><img src="assets/logo.svg" alt=""><span><strong>ProxyEdu Server</strong><small>Proxy :8888 • Dashboard :5000</small></span></div>
+          <div class="line l1"></div><div class="line l2"></div><div class="line l3"></div><div class="line l4"></div>
+          <div class="node client c1"><span class="pc">▣</span><span><strong>Aluno 01</strong><small>Cliente conectado</small></span></div>
+          <div class="node client c2"><span class="pc">▣</span><span><strong>Aluno 02</strong><small>Cliente conectado</small></span></div>
+          <div class="node client c3"><span class="pc">▣</span><span><strong>Aluno 03</strong><small>Cliente conectado</small></span></div>
+          <div class="node internet"><span class="globe">◎</span><span><strong>Internet</strong><small>Acesso controlado</small></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section install" id="instalacao">
+      <div class="container install-grid">
+        <div class="install-copy reveal"><div class="eyebrow light"><i></i> Comece agora</div><h2>Execute o ProxyEdu<br><span>na sua rede local.</span></h2><p>Clone o repositório, compile a solução e siga as orientações disponíveis na documentação do projeto.</p><ul><li>Windows 10 ou Windows 11</li><li>.NET 8 SDK</li><li>Permissões de administrador</li><li>Computadores na mesma rede local</li></ul><a class="btn" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">Abrir documentação ↗</a></div>
+        <div class="terminal reveal delay"><div class="terminal-top"><span></span><span></span><span></span><small>PowerShell</small></div><pre><code><em># Clone o projeto</em>
+git clone https://github.com/MarcosBravin/ProxyEdu.git
+
+<em># Entre no diretório</em>
+cd ProxyEdu
+
+<em># Compile a solução</em>
+dotnet build
+
+<strong>Build succeeded.</strong></code></pre></div>
+      </div>
+    </section>
+
+    <section class="cta-section"><div class="container"><div class="cta reveal"><div><div class="eyebrow light"><i></i> Projeto em evolução</div><h2>Conheça, teste e contribua com o ProxyEdu.</h2><p>Explore o código-fonte e acompanhe as próximas versões do projeto.</p></div><a class="btn btn-white" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">Ver no GitHub ↗</a></div></div></section>
+  </main>
+
+  <footer><div class="container footer-grid"><div><a class="brand" href="#inicio"><img src="assets/logo.svg" alt=""><span>ProxyEdu</span></a><p>Controle inteligente de acesso à internet para ambientes educacionais.</p></div><div><strong>Navegação</strong><a href="#recursos">Recursos</a><a href="#interface">Interface</a><a href="#arquitetura">Arquitetura</a></div><div><strong>Projeto</strong><a href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/MarcosBravin/ProxyEdu/issues" target="_blank" rel="noopener noreferrer">Issues</a></div></div><div class="container footer-bottom"><span>© 2026 ProxyEdu</span><span>Desenvolvido por Marcos Bravin</span></div></footer>
+
+  <div class="lightbox" aria-hidden="true"><button type="button" aria-label="Fechar">×</button><div><img src="" alt=""><p></p></div></div>
+  <script src="script.js"></script>
+</body>
+</html>

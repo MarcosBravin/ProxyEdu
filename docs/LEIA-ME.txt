@@ -1,0 +1,13 @@
+PROXYEDU — SITE PARA GITHUB PAGES
+
+1. Extraia o ZIP.
+2. Entre na pasta proxyedu-site-v2.
+3. Envie TODOS os arquivos e pastas para a raiz do repositório ProxyEdu.
+4. No GitHub Pages, mantenha: main / (root).
+5. Aguarde a publicação em:
+   https://marcosbravin.github.io/ProxyEdu/
+
+IMPORTANTE:
+- Não envie somente o ZIP para o GitHub.
+- A pasta assets deve ser enviada junto com index.html, style.css e script.js.
+- Os links do site já apontam para o repositório oficial.
