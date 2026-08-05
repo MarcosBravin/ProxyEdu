@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ProxyEdu.Server.Security;
 using ProxyEdu.Server.Services;
 using ProxyEdu.Shared.Models;
 
@@ -17,9 +18,13 @@ public class ServerStatusController : ControllerBase
         _studentManager = studentManager;
     }
 
+    private bool IsAdmin() => HttpContext.IsAdmin();
+
     [HttpGet]
     public IActionResult GetStatus()
     {
+        if (!IsAdmin()) return Forbid();
+
         var healthStats = _healthService.GetHealthStats();
         
         // Get student connection info

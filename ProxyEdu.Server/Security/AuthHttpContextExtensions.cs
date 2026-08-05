@@ -16,4 +16,9 @@ public static class AuthHttpContextExtensions
     {
         return context.GetAuthenticatedUser()?.Role == DashboardUserRole.Administrator;
     }
+
+    public static bool IsProfessor(this HttpContext context)
+    {
+        return context.GetAuthenticatedUser()?.Role == DashboardUserRole.Professor;
+    }
 }

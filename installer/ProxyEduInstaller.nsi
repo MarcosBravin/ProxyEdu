@@ -14,10 +14,10 @@ SetCompressor /SOLID lzma
 !include "x64.nsh"
 !define APP_NAME "ProxyEdu"
 !ifndef APP_VERSION
-!define APP_VERSION "1.1.12"
+!define APP_VERSION "1.1.13"
 !endif
 !ifndef APP_FILE_VERSION
-!define APP_FILE_VERSION "1.1.12.0"
+!define APP_FILE_VERSION "1.1.13.0"
 !endif
 !define APP_PUBLISHER "ProxyEdu"
 !define APP_EXE "ProxyEduInstaller.exe"

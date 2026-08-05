@@ -815,11 +815,11 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
     <option value="light">Claro</option>
     <option value="dark">Escuro</option>
   </select>
-  <button class="topbar-btn btn-danger" onclick="blockAll()"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Todos</button>
-  <button class="topbar-btn btn-success" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
+  <button id="topbar-block-all" class="topbar-btn btn-danger" onclick="blockAll()"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Todos</button>
+  <button id="topbar-unblock-all" class="topbar-btn btn-success" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
   <div class="status-pill" id="userPill"><span id="currentUserText">—</span></div>
   <button class="topbar-btn" onclick="logout()"><span class="material-symbols-rounded icon-inline">logout</span> Sair</button>
-  <button class="topbar-btn" onclick="showPage('settings')"><span class="material-symbols-rounded icon-inline">settings</span> Config</button>
+  <button class="topbar-btn" id="topbar-settings-btn" onclick="showPage('settings')"><span class="material-symbols-rounded icon-inline">settings</span> Config</button>
 </div>
 
 <!-- MAIN -->
@@ -828,41 +828,41 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-section">Navegação</div>
-    <div class="nav-item active" onclick="showPage('dashboard')">
+    <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
       <span class="nav-icon material-symbols-rounded">dashboard</span> Dashboard
     </div>
-    <div class="nav-item" onclick="showPage('monitor')">
+    <div class="nav-item" id="nav-monitor" onclick="showPage('monitor')">
       <span class="nav-icon material-symbols-rounded">monitor</span> Monitor
       <span class="nav-badge" id="badge-connected">0</span>
     </div>
-    <div class="nav-item" onclick="showPage('students')">
+    <div class="nav-item" id="nav-students" onclick="showPage('students')">
       <span class="nav-icon material-symbols-rounded">groups</span> Alunos
     </div>
     <div class="sidebar-section">Filtros</div>
-    <div class="nav-item" onclick="showPage('whitelist')">
+    <div class="nav-item" id="nav-whitelist" onclick="showPage('whitelist')">
       <span class="nav-icon material-symbols-rounded">verified</span> Whitelist
     </div>
-    <div class="nav-item" onclick="showPage('blacklist')">
+    <div class="nav-item" id="nav-blacklist" onclick="showPage('blacklist')">
       <span class="nav-icon material-symbols-rounded">block</span> Blacklist
     </div>
-    <div class="nav-item" onclick="showPage('presets')">
+    <div class="nav-item" id="nav-presets" onclick="showPage('presets')">
       <span class="nav-icon material-symbols-rounded">inventory_2</span> Presets
     </div>
     <div class="sidebar-section">Relatórios</div>
-    <div class="nav-item" onclick="showPage('logs')">
+    <div class="nav-item" id="nav-logs" onclick="showPage('logs')">
       <span class="nav-icon material-symbols-rounded">receipt_long</span> Logs
     </div>
-    <div class="nav-item" onclick="showPage('stats')">
+    <div class="nav-item" id="nav-stats" onclick="showPage('stats')">
       <span class="nav-icon material-symbols-rounded">query_stats</span> Estatísticas
     </div>
-    <div class="nav-item" onclick="showPage('server')">
+    <div class="nav-item" id="nav-server" onclick="showPage('server')">
       <span class="nav-icon material-symbols-rounded">dns</span> Servidor
     </div>
     <div class="nav-item" id="nav-users" style="display:none" onclick="showPage('users')">
       <span class="nav-icon material-symbols-rounded">admin_panel_settings</span> Usuários
     </div>
     <div class="sidebar-bottom">
-      <div class="nav-item" onclick="showPage('settings')">
+      <div class="nav-item" id="nav-settings" onclick="showPage('settings')">
         <span class="nav-icon material-symbols-rounded">settings</span> Configurações
       </div>
     </div>
@@ -954,8 +954,8 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
           <div class="page-sub">Visualize todos os computadores conectados</div>
         </div>
         <div style="display:flex;gap:10px">
-          <button class="btn btn-red" onclick="blockAll()"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Todos</button>
-          <button class="btn btn-green" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
+          <button id="monitor-block-all" class="btn btn-red" onclick="blockAll()"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Todos</button>
+          <button id="monitor-unblock-all" class="btn btn-green" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
         </div>
       </div>
       <div class="monitor-grid" id="monitorGrid">
@@ -981,10 +981,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
           <option value="offline">Offline</option>
           <option value="blocked">Bloqueados</option>
         </select>
-        <button class="btn btn-red" onclick="blockAll()"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Todos</button>
-        <button class="btn btn-green" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
-        <button class="btn btn-primary" onclick="releaseAllSitesForAll()"><span class="material-symbols-rounded icon-btn">language</span> Liberar Todos Sites</button>
-        <button class="btn btn-outline" onclick="restoreFiltersForAll()"><span class="material-symbols-rounded icon-btn">filter_alt</span> Restaurar Filtros</button>
+        <button id="student-block-all" class="btn btn-red" onclick="blockAll()"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Todos</button>
+        <button id="student-unblock-all" class="btn btn-green" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
+        <button id="student-release-all" class="btn btn-primary" onclick="releaseAllSitesForAll()"><span class="material-symbols-rounded icon-btn">language</span> Liberar Todos Sites</button>
+        <button id="student-restore-filters" class="btn btn-outline" onclick="restoreFiltersForAll()"><span class="material-symbols-rounded icon-btn">filter_alt</span> Restaurar Filtros</button>
       </div>
       <div class="card">
         <div class="table-wrap">
@@ -1589,6 +1589,68 @@ async function tryAuthenticate(authHeaderValue) {
   return true;
 }
 
+function isAdminUser() {
+  return currentUser?.role === 'Administrator';
+}
+
+function isProfessorUser() {
+  return currentUser?.role === 'Professor';
+}
+
+function enforcePageAccess(name) {
+  const adminOnly = ['dashboard', 'whitelist', 'blacklist', 'presets', 'logs', 'stats', 'server', 'settings', 'users'];
+  if (adminOnly.includes(name) && !isAdminUser()) {
+    toast('Somente administradores podem acessar essa área.', 'error');
+    return false;
+  }
+  return true;
+}
+
+function getDefaultPage() {
+  return isAdminUser() ? 'dashboard' : 'monitor';
+}
+
+function getVisibleNavItems() {
+  return {
+    dashboard: isAdminUser(),
+    monitor: true,
+    students: true,
+    whitelist: isAdminUser(),
+    blacklist: isAdminUser(),
+    presets: isAdminUser(),
+    logs: isAdminUser(),
+    stats: isAdminUser(),
+    server: isAdminUser(),
+    users: isAdminUser(),
+    settings: isAdminUser()
+  };
+}
+
+function applyRoleBasedNavigation() {
+  const visible = getVisibleNavItems();
+  Object.entries(visible).forEach(([key, show]) => {
+    const el = document.getElementById(`nav-${key}`);
+    if (el) el.style.display = show ? 'flex' : 'none';
+  });
+
+  const adminButtons = [
+    'topbar-settings-btn',
+    'topbar-block-all',
+    'topbar-unblock-all',
+    'monitor-block-all',
+    'monitor-unblock-all',
+    'student-block-all',
+    'student-unblock-all',
+    'student-release-all',
+    'student-restore-filters'
+  ];
+
+  adminButtons.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdminUser() ? '' : 'none';
+  });
+}
+
 function getAuthHeaderValue() {
   return sessionStorage.getItem(AUTH_KEY) || '';
 }
@@ -1649,32 +1711,39 @@ function logout() {
 function onAuthenticated() {
   setAuthenticatedUI(true);
   document.getElementById('currentUserText').textContent = `${currentUser.username} (${currentUser.role})`;
-  const isAdmin = currentUser.role === 'Administrator';
-  document.getElementById('nav-users').style.display = isAdmin ? 'flex' : 'none';
+  applyRoleBasedNavigation();
+  showPage(getDefaultPage());
 
   initSignalR();
   loadAll();
-  loadUpdateStatus();
-  checkUpdateNotification();
+  if (isAdminUser()) {
+    loadUpdateStatus();
+    checkUpdateNotification();
+  }
   updateClock();
 
   if (refreshDashboardTimer) clearInterval(refreshDashboardTimer);
   if (refreshMonitorTimer) clearInterval(refreshMonitorTimer);
   if (refreshClockTimer) clearInterval(refreshClockTimer);
 
-  refreshDashboardTimer = setInterval(loadDashboard, 5000);
+  refreshDashboardTimer = isAdminUser() ? setInterval(loadDashboard, 5000) : null;
   refreshMonitorTimer = setInterval(loadMonitor, 3000);
   refreshClockTimer = setInterval(updateClock, 1000);
 }
 
 async function loadAll() {
-  await Promise.all([loadStudents(), loadRules(), loadGroups(), loadSettings(), loadDashboard()]);
-  if (currentUser?.role === 'Administrator') {
+  const tasks = [loadStudents(), loadGroups()];
+  if (isAdminUser()) {
+    tasks.push(loadRules(), loadSettings(), loadDashboard());
+  }
+  await Promise.all(tasks);
+  if (isAdminUser()) {
     await loadUsers();
   }
 }
 
 async function loadUpdateStatus() {
+  if (!isAdminUser()) return;
   const status = await api('GET', '/update');
   if (!status) return;
   updateStatus = status;
@@ -1682,6 +1751,8 @@ async function loadUpdateStatus() {
 }
 
 async function checkUpdateNotification() {
+  if (!isAdminUser()) return;
+  if (!isAdminUser()) return;
   const status = await api('POST', '/update/check');
   if (!status) return;
   updateStatus = status;
@@ -1731,6 +1802,7 @@ async function checkUpdateManual() {
 }
 
 async function downloadUpdate() {
+  if (!isAdminUser()) return;
   const btn = document.getElementById('downloadUpdateBtn');
   btn.disabled = true;
   btn.innerHTML = '<span class="material-symbols-rounded icon-btn">hourglass_top</span> Baixando...';
@@ -1751,6 +1823,7 @@ async function downloadUpdate() {
 }
 
 async function installUpdate() {
+  if (!isAdminUser()) return;
   if (!confirm('Instalar a atualização agora? O ProxyEdu será fechado e reiniciado automaticamente.')) return;
   const status = await api('POST', '/update/install');
   if (status) {
@@ -1897,10 +1970,7 @@ function renderAll() {
 
 // ─── NAVIGATION ───────────────────────────────────────────────
 function showPage(name) {
-  if (name === 'users' && currentUser?.role !== 'Administrator') {
-    toast('Somente administradores podem acessar essa área.', 'error');
-    return;
-  }
+  if (!enforcePageAccess(name)) return;
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1916,6 +1986,7 @@ function showPage(name) {
   if (name === 'users') loadUsers();
   if (name === 'students') renderStudentsTable();
   if (name === 'whitelist' || name === 'blacklist') renderRules();
+  if (name === 'dashboard') loadDashboard();
   if (name === 'server') {
     loadServerStatus();
     // Auto-refresh every 5 seconds when on server page
@@ -2077,18 +2148,21 @@ function renderMonitor() {
     return `<div class="monitor-card ${statusClass}" onclick="showStudentDetail('${s.id}')">
       <div class="mc-top">
         <div class="mc-avatar"><span class="material-symbols-rounded">person</span></div>
-        ${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}
+        ${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : s.hasTemporaryAccess ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">schedule</span> Liberado temporário</span>' : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}
       </div>
       <div class="mc-name">${s.name}</div>
       <div class="mc-ip">${s.ipAddress}</div>
       <div class="mc-url" title="${s.currentUrl || 'Sem atividade recente'}">${s.currentUrl || 'Sem atividade recente'}</div>
       <div class="mc-actions">
-        ${s.isBlocked
+        ${isAdminUser() ? (s.isBlocked
           ? `<button class="btn btn-green btn-sm" onclick="event.stopPropagation();toggleBlock('${s.id}',false)"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar</button>`
-          : `<button class="btn btn-red btn-sm" onclick="event.stopPropagation();toggleBlock('${s.id}',true)"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear</button>`}
-        ${s.bypassFilters
+          : `<button class="btn btn-red btn-sm" onclick="event.stopPropagation();toggleBlock('${s.id}',true)"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear</button>`)
+          : ''}
+        ${isAdminUser() ? (s.bypassFilters
           ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();toggleBypassFilters('${s.id}',false)"><span class="material-symbols-rounded icon-btn">filter_alt</span></button>`
-          : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();toggleBypassFilters('${s.id}',true)"><span class="material-symbols-rounded icon-btn">language</span></button>`}
+          : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();toggleBypassFilters('${s.id}',true)"><span class="material-symbols-rounded icon-btn">language</span></button>`)
+          : ''}
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();grantTemporaryAccess('${s.id}')"><span class="material-symbols-rounded icon-inline">schedule</span></button>
         <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showStudentDetail('${s.id}')"><span class="material-symbols-rounded icon-inline">visibility</span></button>
       </div>
     </div>`;
@@ -2164,20 +2238,21 @@ function renderStudentsTable() {
       <td><span style="font-family:var(--mono);font-size:11px">${s.macAddress || '—'}</span></td>
       <td>${s.os || '—'}</td>
       <td>${s.group || 'default'}</td>
-      <td>${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}</td>
+      <td>${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : s.hasTemporaryAccess ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">schedule</span> Liberado temporário</span>' : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(s.lastSeen)}</td>
       <td><div style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-family:var(--mono);color:var(--text3)">${s.currentUrl || '—'}</div></td>
       <td>
         <div class="action-row">
-          ${s.isBlocked
+          ${isAdminUser() ? (s.isBlocked
             ? `<button class="btn btn-green btn-sm" onclick="toggleBlock('${s.id}',false)"><span class="material-symbols-rounded icon-btn">lock_open</span></button>`
-            : `<button class="btn btn-red btn-sm" onclick="toggleBlock('${s.id}',true)"><span class="material-symbols-rounded icon-btn">lock</span></button>`}
-          ${s.bypassFilters
+            : `<button class="btn btn-red btn-sm" onclick="toggleBlock('${s.id}',true)"><span class="material-symbols-rounded icon-btn">lock</span></button>`) : ''}
+          ${isAdminUser() ? (s.bypassFilters
             ? `<button class="btn btn-outline btn-sm" onclick="toggleBypassFilters('${s.id}',false)"><span class="material-symbols-rounded icon-inline">filter_alt</span></button>`
-            : `<button class="btn btn-primary btn-sm" onclick="toggleBypassFilters('${s.id}',true)"><span class="material-symbols-rounded icon-inline">language</span></button>`}
-          <button class="btn btn-outline btn-sm" onclick="openEditStudent('${s.id}')"><span class="material-symbols-rounded icon-inline">edit</span></button>
+            : `<button class="btn btn-primary btn-sm" onclick="toggleBypassFilters('${s.id}',true)"><span class="material-symbols-rounded icon-inline">language</span></button>`) : ''}
+          <button class="btn btn-outline btn-sm" onclick="grantTemporaryAccess('${s.id}')"><span class="material-symbols-rounded icon-inline">schedule</span></button>
           <button class="btn btn-outline btn-sm" onclick="showStudentDetail('${s.id}')"><span class="material-symbols-rounded icon-inline">visibility</span></button>
-          <button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')"><span class="material-symbols-rounded icon-inline">delete</span></button>
+          ${isAdminUser() ? `<button class="btn btn-outline btn-sm" onclick="openEditStudent('${s.id}')"><span class="material-symbols-rounded icon-inline">edit</span></button>` : ''}
+          ${isAdminUser() ? `<button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')"><span class="material-symbols-rounded icon-inline">delete</span></button>` : ''}
         </div>
       </td>
     </tr>`).join('');
@@ -2254,6 +2329,32 @@ async function restoreFiltersForAll() {
   toast('Filtros restaurados para todos', 'success');
 }
 
+async function grantTemporaryAccess(id) {
+  const minutesPrompt = prompt('Informe a duração em minutos para liberação temporária:');
+  if (minutesPrompt === null) return;
+
+  const minutes = parseInt(minutesPrompt.trim(), 10);
+  if (Number.isNaN(minutes) || minutes <= 0) {
+    toast('Duração inválida. Informe um número de minutos maior que zero.', 'error');
+    return;
+  }
+
+  const result = await api('POST', `/students/${id}/temporary-access`, { minutes });
+  if (!result) {
+    toast('Falha ao conceder liberação temporária.', 'error');
+    return;
+  }
+
+  const student = students.find(s => s.id === id);
+  if (student) {
+    student.temporaryAccessUntilUtc = new Date(Date.now() + minutes * 60000).toISOString();
+    student.bypassFilters = true;
+    student.isBlocked = false;
+  }
+  renderStudentsTable(); renderMonitor();
+  toast(`Liberação temporária concedida por ${minutes} minutos`, 'success');
+}
+
 // ─── STUDENT EDIT ──────────────────────────────────────────────
 function openEditStudent(id) {
   const s = students.find(x => x.id === id);
@@ -2307,7 +2408,7 @@ function showStudentDetail(id) {
       <div>
         <div class="form-label" style="margin-bottom:6px">Estatísticas</div>
         <table style="width:100%;font-size:13px">
-          <tr><td style="padding:4px 0;color:var(--text3)">Status</td><td style="padding:4px 0">${s.isBlocked?'<span class="badge blocked">Bloqueado</span>':s.bypassFilters?'<span class="badge released">Liberado total</span>':s.isConnected?'<span class="badge online">Online</span>':'<span class="badge offline">Offline</span>'}</td></tr>
+          <tr><td style="padding:4px 0;color:var(--text3)">Status</td><td style="padding:4px 0">${s.isBlocked?'<span class="badge blocked">Bloqueado</span>':s.hasTemporaryAccess?'<span class="badge released">Liberado temporário</span>':s.bypassFilters?'<span class="badge released">Liberado total</span>':s.isConnected?'<span class="badge online">Online</span>':'<span class="badge offline">Offline</span>'}</td></tr>
           <tr><td style="padding:4px 0;color:var(--text3)">Requisições</td><td style="padding:4px 0">${s.totalRequests.toLocaleString()}</td></tr>
           <tr><td style="padding:4px 0;color:var(--text3)">Bloqueios</td><td style="padding:4px 0;color:var(--red)">${s.blockedRequests}</td></tr>
           <tr><td style="padding:4px 0;color:var(--text3)">Dados</td><td style="padding:4px 0">${formatBytes(s.bytesTransferred)}</td></tr>
@@ -2317,14 +2418,17 @@ function showStudentDetail(id) {
       </div>
     </div>
     <div class="form-group"><div class="form-label">Site atual</div><div class="domain-pill" style="font-size:12px">${s.currentUrl || 'Sem atividade recente'}</div></div>
+    ${s.hasTemporaryAccess ? `<div class="form-group"><div class="form-label">Acesso temporário até</div><div>${new Date(s.temporaryAccessUntilUtc).toLocaleString('pt-BR')}</div></div>` : ''}
     <div style="display:flex;gap:10px;margin-top:8px">
-      ${s.isBlocked
-        ? `<button class="btn btn-green" onclick="toggleBlock('${s.id}',false);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Aluno</button>`
-        : `<button class="btn btn-red" onclick="toggleBlock('${s.id}',true);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Aluno</button>`}
-      ${s.bypassFilters
-        ? `<button class="btn btn-outline" onclick="toggleBypassFilters('${s.id}',false);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">filter_alt</span> Restaurar Filtros</button>`
-        : `<button class="btn btn-primary" onclick="toggleBypassFilters('${s.id}',true);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">language</span> Liberar Todos Sites</button>`}
-      <button class="btn btn-outline" onclick="openEditStudent('${s.id}');closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-inline">edit</span> Editar</button>
+      ${isAdminUser()
+        ? (s.isBlocked
+            ? `<button class="btn btn-green" onclick="toggleBlock('${s.id}',false);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Aluno</button>`
+            : `<button class="btn btn-red" onclick="toggleBlock('${s.id}',true);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Aluno</button>`) : `<button class="btn btn-primary" onclick="grantTemporaryAccess('${s.id}');closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">schedule</span> Conceder Acesso Temporário</button>`}
+      ${isAdminUser()
+        ? (s.bypassFilters
+            ? `<button class="btn btn-outline" onclick="toggleBypassFilters('${s.id}',false);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">filter_alt</span> Restaurar Filtros</button>`
+            : `<button class="btn btn-primary" onclick="toggleBypassFilters('${s.id}',true);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">language</span> Liberar Todos Sites</button>`) : ''}
+      ${isAdminUser() ? `<button class="btn btn-outline" onclick="openEditStudent('${s.id}');closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-inline">edit</span> Editar</button>` : ''}
     </div>
   `;
   openModal('modalStudentDetail');

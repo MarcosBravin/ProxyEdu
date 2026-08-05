@@ -15,6 +15,9 @@ public class StudentInfo
     public string CurrentUrl { get; set; } = "";
     public string Group { get; set; } = "default";
     public bool BypassFilters { get; set; } = false; // when true, ignores blacklist/whitelist rules
+    public DateTime? TemporaryAccessUntilUtc { get; set; }
+    public bool TemporaryAccessPreviousBlockedState { get; set; } = false;
+    public bool HasTemporaryAccess => TemporaryAccessUntilUtc.HasValue && TemporaryAccessUntilUtc.Value > DateTime.UtcNow;
     public int TotalRequests { get; set; } = 0;
     public int BlockedRequests { get; set; } = 0;
     public long BytesTransferred { get; set; } = 0;

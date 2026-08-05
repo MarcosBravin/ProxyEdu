@@ -265,10 +265,50 @@ public class StudentManagerService : IHostedService
         Publish("StudentUpdated", MaterializeForDashboard(student));
     }
 
-    public bool IsStudentBypassFilters(string ip)
+    public void SetStudentTemporaryAccess(string studentId, TimeSpan duration)
+    {
+        var student = _db.Students.FindById(studentId);
+        if (student == null) return;
+
+        student.TemporaryAccessPreviousBlockedState = student.IsBlocked;
+        student.IsBlocked = false;
+        student.BypassFilters = true;
+        student.TemporaryAccessUntilUtc = DateTime.UtcNow.Add(duration);
+
+        _db.Students.Update(student);
+        InvalidateStatsCache();
+        Publish("StudentUpdated", MaterializeForDashboard(student));
+    }
+
+    private StudentInfo? GetStudentByIpAndExpireTemporaryAccess(string ip)
     {
         var student = FindStudentByIp(ip);
+        if (student == null) return null;
+
+        if (student.TemporaryAccessUntilUtc.HasValue && student.TemporaryAccessUntilUtc.Value <= DateTime.UtcNow)
+        {
+            student.TemporaryAccessUntilUtc = null;
+            student.BypassFilters = false;
+            student.IsBlocked = student.TemporaryAccessPreviousBlockedState;
+            student.TemporaryAccessPreviousBlockedState = false;
+            _db.Students.Update(student);
+            InvalidateStatsCache();
+            Publish("StudentUpdated", MaterializeForDashboard(student));
+        }
+
+        return student;
+    }
+
+    public bool IsStudentBypassFilters(string ip)
+    {
+        var student = GetStudentByIpAndExpireTemporaryAccess(ip);
         return student?.BypassFilters ?? false;
+    }
+
+    public bool IsStudentTemporaryAccessActive(string ip)
+    {
+        var student = GetStudentByIpAndExpireTemporaryAccess(ip);
+        return student != null && student.HasTemporaryAccess;
     }
 
     private void SetAllBypassFilters(bool bypass)
@@ -293,7 +333,25 @@ public class StudentManagerService : IHostedService
     public List<StudentInfo> GetAll()
     {
         CleanupPresence();
-        return _db.Students.FindAll().Select(MaterializeForDashboard).ToList();
+        var students = _db.Students.FindAll().ToList();
+        var changed = false;
+
+        foreach (var student in students)
+        {
+            if (student.TemporaryAccessUntilUtc.HasValue && student.TemporaryAccessUntilUtc.Value <= DateTime.UtcNow)
+            {
+                student.TemporaryAccessUntilUtc = null;
+                student.BypassFilters = false;
+                student.IsBlocked = student.TemporaryAccessPreviousBlockedState;
+                student.TemporaryAccessPreviousBlockedState = false;
+                _db.Students.Update(student);
+                changed = true;
+            }
+        }
+
+        if (changed) InvalidateStatsCache();
+
+        return students.Select(MaterializeForDashboard).ToList();
     }
 
     public void MarkDisconnected(string ip)
@@ -325,7 +383,24 @@ public class StudentManagerService : IHostedService
 
         CleanupPresence();
 
-        var students = _db.Students.FindAll().Select(MaterializeForDashboard).ToList();
+        var students = _db.Students.FindAll().ToList();
+        var changed = false;
+        foreach (var student in students)
+        {
+            if (student.TemporaryAccessUntilUtc.HasValue && student.TemporaryAccessUntilUtc.Value <= DateTime.UtcNow)
+            {
+                student.TemporaryAccessUntilUtc = null;
+                student.BypassFilters = false;
+                student.IsBlocked = student.TemporaryAccessPreviousBlockedState;
+                student.TemporaryAccessPreviousBlockedState = false;
+                _db.Students.Update(student);
+                changed = true;
+            }
+        }
+
+        if (changed) InvalidateStatsCache();
+
+        var dashboardStudents = students.Select(MaterializeForDashboard).ToList();
         var logs = _db.Logs.FindAll().ToList();
         var recent = logs.OrderByDescending(l => l.Timestamp).Take(20).ToList();
 
@@ -381,6 +456,7 @@ public class StudentManagerService : IHostedService
             CurrentUrl = source.CurrentUrl,
             Group = source.Group,
             BypassFilters = source.BypassFilters,
+            TemporaryAccessUntilUtc = source.TemporaryAccessUntilUtc,
             TotalRequests = source.TotalRequests,
             BlockedRequests = source.BlockedRequests,
             BytesTransferred = source.BytesTransferred

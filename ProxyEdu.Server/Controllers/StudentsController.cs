@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ProxyEdu.Server.Security;
 using ProxyEdu.Server.Services;
 using ProxyEdu.Shared.Models;
 
@@ -17,12 +18,21 @@ public class StudentsController : ControllerBase
         _db = db;
     }
 
+    private bool IsAdmin() => HttpContext.IsAdmin();
+    private bool IsProfessor() => HttpContext.IsProfessor();
+    private bool CanViewStudentData() => IsAdmin() || IsProfessor();
+
     [HttpGet]
-    public IActionResult GetAll() => Ok(_manager.GetAll());
+    public IActionResult GetAll()
+    {
+        if (!CanViewStudentData()) return Forbid();
+        return Ok(_manager.GetAll());
+    }
 
     [HttpGet("{id}")]
     public IActionResult Get(string id)
     {
+        if (!CanViewStudentData()) return Forbid();
         var s = _db.Students.FindById(id);
         if (s == null) return NotFound();
         return Ok(s);
@@ -31,6 +41,7 @@ public class StudentsController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult Update(string id, [FromBody] StudentInfo updated)
     {
+        if (!IsAdmin()) return Forbid();
         var student = _db.Students.FindById(id);
         if (student == null) return NotFound();
         student.Name = updated.Name;
@@ -42,6 +53,7 @@ public class StudentsController : ControllerBase
     [HttpPost("{id}/block")]
     public IActionResult Block(string id)
     {
+        if (!IsAdmin()) return Forbid();
         _manager.SetStudentBlocked(id, true);
         return Ok(new { success = true });
     }
@@ -49,13 +61,28 @@ public class StudentsController : ControllerBase
     [HttpPost("{id}/unblock")]
     public IActionResult Unblock(string id)
     {
+        if (!IsAdmin()) return Forbid();
         _manager.SetStudentBlocked(id, false);
         return Ok(new { success = true });
+    }
+
+    [HttpPost("{id}/temporary-access")]
+    public IActionResult GrantTemporaryAccess(string id, [FromBody] TemporaryAccessRequest request)
+    {
+        if (!CanViewStudentData()) return Forbid();
+        if (request == null || request.Minutes <= 0)
+        {
+            return BadRequest(new { error = "Duração inválida." });
+        }
+
+        _manager.SetStudentTemporaryAccess(id, TimeSpan.FromMinutes(request.Minutes));
+        return Ok(new { success = true, expiresInMinutes = request.Minutes });
     }
 
     [HttpPost("{id}/release-all-sites")]
     public IActionResult ReleaseAllSites(string id)
     {
+        if (!IsAdmin()) return Forbid();
         _manager.SetStudentBypassFilters(id, true);
         return Ok(new { success = true });
     }
@@ -63,6 +90,7 @@ public class StudentsController : ControllerBase
     [HttpPost("{id}/restore-filters")]
     public IActionResult RestoreFilters(string id)
     {
+        if (!IsAdmin()) return Forbid();
         _manager.SetStudentBypassFilters(id, false);
         return Ok(new { success = true });
     }
@@ -70,6 +98,7 @@ public class StudentsController : ControllerBase
     [HttpPost("block-all")]
     public IActionResult BlockAll()
     {
+        if (!IsAdmin()) return Forbid();
         _manager.BlockAll();
         return Ok(new { success = true });
     }
@@ -77,6 +106,7 @@ public class StudentsController : ControllerBase
     [HttpPost("unblock-all")]
     public IActionResult UnblockAll()
     {
+        if (!IsAdmin()) return Forbid();
         _manager.UnblockAll();
         return Ok(new { success = true });
     }
@@ -84,6 +114,7 @@ public class StudentsController : ControllerBase
     [HttpPost("release-all-sites")]
     public IActionResult ReleaseAllSitesForAll()
     {
+        if (!IsAdmin()) return Forbid();
         _manager.ReleaseAllSitesForAll();
         return Ok(new { success = true });
     }
@@ -91,6 +122,7 @@ public class StudentsController : ControllerBase
     [HttpPost("restore-filters")]
     public IActionResult RestoreFiltersForAll()
     {
+        if (!IsAdmin()) return Forbid();
         _manager.RestoreFiltersForAll();
         return Ok(new { success = true });
     }
@@ -98,6 +130,7 @@ public class StudentsController : ControllerBase
     [HttpPost("group/{groupName}/block")]
     public IActionResult BlockGroup(string groupName)
     {
+        if (!IsAdmin()) return Forbid();
         _manager.SetGroupBlocked(groupName, true);
         return Ok(new { success = true });
     }
@@ -105,17 +138,28 @@ public class StudentsController : ControllerBase
     [HttpPost("group/{groupName}/unblock")]
     public IActionResult UnblockGroup(string groupName)
     {
+        if (!IsAdmin()) return Forbid();
         _manager.SetGroupBlocked(groupName, false);
         return Ok(new { success = true });
     }
 
     [HttpGet("stats")]
-    public IActionResult GetStats() => Ok(_manager.GetStats());
+    public IActionResult GetStats()
+    {
+        if (!IsAdmin()) return Forbid();
+        return Ok(_manager.GetStats());
+    }
 
     [HttpDelete("{id}")]
     public IActionResult Delete(string id)
     {
+        if (!IsAdmin()) return Forbid();
         _db.Students.Delete(id);
         return Ok(new { success = true });
     }
+}
+
+public class TemporaryAccessRequest
+{
+    public int Minutes { get; set; }
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ProxyEdu.Server.Security;
 using ProxyEdu.Server.Services;
 using ProxyEdu.Shared.Models;
 
@@ -17,8 +18,14 @@ public class FiltersController : ControllerBase
         _db = db;
     }
 
+    private bool IsAdmin() => HttpContext.IsAdmin();
+
     [HttpGet]
-    public IActionResult GetAll() => Ok(_filter.GetAllRules());
+    public IActionResult GetAll()
+    {
+        if (!IsAdmin()) return Forbid();
+        return Ok(_filter.GetAllRules());
+    }
 
     [HttpPost]
     public IActionResult Create([FromBody] FilterRule rule)
