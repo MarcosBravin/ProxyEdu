@@ -1,62 +1,46 @@
-# PROXYEDU COMMUNITY LICENSE
+PROXYEDU COMMUNITY LICENSE
+Modelo Open Core — Community Edition
+Versão 1.0
 
-## Modelo Open Core — Community Edition
-
-**Versão 1.0**
-
-## CLÁUSULA PRIMEIRA – DEFINIÇÕES
-
-### 1.1. Definições
-
+CLÁUSULA PRIMEIRA – DEFINIÇÕES
+1.1. Definições
 Para os fins desta Licença, os termos abaixo terão os seguintes significados:
 
-**a) Software:** significa o código-fonte, arquivos de configuração, scripts, documentação e demais componentes disponibilizados na edição comunitária da plataforma **ProxyEdu Community Edition**, de titularidade de **Marcos Bravin** ("Licenciante").
+a) Software: significa o código-fonte, arquivos de configuração, scripts, documentação e demais componentes disponibilizados na edição comunitária da plataforma ProxyEdu Community Edition, de titularidade de Marcos Bravin ("Licenciante").
 
-**b) Uso:** significa instalar, executar, acessar, modificar ou utilizar as funcionalidades do Software dentro dos limites estabelecidos nesta Licença.
+b) Uso: significa instalar, executar, acessar, modificar ou utilizar as funcionalidades do Software dentro dos limites estabelecidos nesta Licença.
 
-**c) Uso Comunitário:** significa a utilização do Software para:
+c) Uso Comunitário: significa a utilização do Software para:
 
-* aprendizado;
-* pesquisa;
-* avaliação;
-* uso pessoal;
-* uso educacional sem finalidade lucrativa;
-* testes internos sem exploração econômica direta ou indireta.
+aprendizado;
+pesquisa;
+avaliação;
+uso pessoal;
+uso educacional sem finalidade lucrativa;
+testes internos sem exploração econômica direta ou indireta.
+d) Uso Comercial: significa qualquer utilização do Software que tenha finalidade econômica, incluindo:
 
-**d) Uso Comercial:** significa qualquer utilização do Software que tenha finalidade econômica, incluindo:
+venda;
+prestação de serviços remunerados utilizando o Software;
+integração em soluções comerciais;
+fornecimento como serviço;
+exploração por terceiros mediante remuneração;
+operação como plataforma SaaS;
+distribuição comercial.
+e) Versão Enterprise: significa módulos, funcionalidades ou integrações adicionais desenvolvidos ou disponibilizados pelo Licenciante sob condições comerciais específicas.
 
-* venda;
-* prestação de serviços remunerados utilizando o Software;
-* integração em soluções comerciais;
-* fornecimento como serviço;
-* exploração por terceiros mediante remuneração;
-* operação como plataforma SaaS;
-* distribuição comercial.
-
-**e) Versão Enterprise:** significa módulos, funcionalidades ou integrações adicionais desenvolvidos ou disponibilizados pelo Licenciante sob condições comerciais específicas.
-
----
-
-# CLÁUSULA SEGUNDA – CONCESSÃO DE LICENÇA
-
-## 2.1.
-
+CLÁUSULA SEGUNDA – CONCESSÃO DE LICENÇA
+2.1.
 O Licenciante concede ao Licenciado uma licença limitada, não exclusiva e mundial para utilização do Software exclusivamente conforme as condições desta Licença.
 
-## 2.2.
-
+2.2.
 A licença permanece válida enquanto o Licenciado cumprir integralmente os termos desta Licença.
 
-## 2.3.
-
+2.3.
 Esta Licença não transfere ao Licenciado qualquer direito de propriedade intelectual sobre o Software.
 
----
-
-# CLÁUSULA TERCEIRA – PERMISSÕES DE USO COMUNITÁRIO
-
-## 3.1.
-
+CLÁUSULA TERCEIRA – PERMISSÕES DE USO COMUNITÁRIO
+3.1.
 É permitido ao Licenciado:
 
 a) instalar e executar o Software para uso educacional e experimental;
@@ -71,16 +55,11 @@ e) contribuir com melhorias ao projeto;
 
 f) utilizar o Software em ambientes educacionais sem finalidade comercial.
 
-## 3.2.
-
+3.2.
 O uso comunitário não autoriza a exploração econômica do Software.
 
----
-
-# CLÁUSULA QUARTA – RESTRIÇÕES DE USO COMERCIAL
-
-## 4.1.
-
+CLÁUSULA QUARTA – RESTRIÇÕES DE USO COMERCIAL
+4.1.
 Sem autorização comercial expressa do Licenciante, o Licenciado não poderá:
 
 a) vender, revender ou sublicenciar o Software;
@@ -97,16 +76,11 @@ f) utilizar a marca ProxyEdu para criar produtos derivados que possam causar con
 
 g) comercializar suporte oficial, manutenção ou serviços apresentados como oficiais do ProxyEdu.
 
-## 4.2.
-
+4.2.
 O uso comercial poderá ser autorizado mediante licença específica, contrato ou modelo de parceria definido pelo Licenciante.
 
----
-
-# CLÁUSULA QUINTA – SERVIÇOS DE TERCEIROS
-
-## 5.1.
-
+CLÁUSULA QUINTA – SERVIÇOS DE TERCEIROS
+5.1.
 Esta Licença não impede que terceiros ofereçam serviços independentes relacionados ao Software, desde que:
 
 a) não representem oficialmente o ProxyEdu sem autorização;
@@ -117,142 +91,94 @@ c) mantenham a identificação original do projeto;
 
 d) respeitem os termos desta Licença.
 
-## 5.2.
-
+5.2.
 Serviços de implantação, treinamento ou consultoria poderão ser realizados por terceiros de forma independente, sem caracterizar representação oficial.
 
----
-
-# CLÁUSULA SEXTA – MODELO OPEN CORE
-
-## 6.1.
-
+CLÁUSULA SEXTA – MODELO OPEN CORE
+6.1.
 O ProxyEdu utiliza o modelo Open Core.
 
 A Community Edition disponibiliza o núcleo comunitário do Software.
 
-## 6.2.
-
+6.2.
 Funcionalidades adicionais poderão ser disponibilizadas em versões Enterprise, incluindo, mas não limitadas a:
 
-* recursos corporativos;
-* integrações avançadas;
-* gerenciamento em larga escala;
-* recursos multiunidade;
-* ferramentas administrativas avançadas;
-* suporte oficial;
-* serviços gerenciados.
-
-## 6.3.
-
+recursos corporativos;
+integrações avançadas;
+gerenciamento em larga escala;
+recursos multiunidade;
+ferramentas administrativas avançadas;
+suporte oficial;
+serviços gerenciados.
+6.3.
 A disponibilidade de funcionalidades Enterprise não limita a evolução da Community Edition.
 
----
-
-# CLÁUSULA SÉTIMA – CONTRIBUIÇÕES
-
-## 7.1.
-
+CLÁUSULA SÉTIMA – CONTRIBUIÇÕES
+7.1.
 Contribuições enviadas ao projeto, incluindo código, documentação ou melhorias, permanecem sujeitas aos termos desta Licença.
 
-## 7.2.
-
+7.2.
 Ao contribuir com o projeto, o colaborador declara possuir os direitos necessários sobre o material enviado.
 
-## 7.3.
-
+7.3.
 O Licenciante poderá utilizar, modificar e incorporar contribuições ao projeto.
 
----
-
-# CLÁUSULA OITAVA – PROPRIEDADE INTELECTUAL E MARCA
-
-## 8.1.
-
+CLÁUSULA OITAVA – PROPRIEDADE INTELECTUAL E MARCA
+8.1.
 Todos os direitos autorais, marcas, nomes comerciais e demais direitos relacionados ao ProxyEdu permanecem de propriedade exclusiva de Marcos Bravin.
 
-## 8.2.
-
+8.2.
 Esta Licença concede apenas direito de uso, não transferência de propriedade.
 
-## 8.3.
-
+8.3.
 O uso da marca ProxyEdu para indicar compatibilidade é permitido quando não gerar falsa associação com uma versão oficial.
 
----
-
-# CLÁUSULA NONA – SEGURANÇA E RESPONSABILIDADE
-
-## 9.1.
-
+CLÁUSULA NONA – SEGURANÇA E RESPONSABILIDADE
+9.1.
 O Software é fornecido no estado em que se encontra ("AS IS").
 
-## 9.2.
-
+9.2.
 O Licenciante não garante que o Software atenderá necessidades específicas ou funcionará sem interrupções.
 
-## 9.3.
-
+9.3.
 O Licenciado é responsável por:
 
-* configurar corretamente o ambiente;
-* proteger sua infraestrutura;
-* respeitar políticas internas;
-* cumprir legislação aplicável.
-
-## 9.4.
-
+configurar corretamente o ambiente;
+proteger sua infraestrutura;
+respeitar políticas internas;
+cumprir legislação aplicável.
+9.4.
 O Licenciante não será responsável por danos decorrentes do uso ou impossibilidade de uso do Software.
 
----
-
-# CLÁUSULA DÉCIMA – PRIVACIDADE E USO RESPONSÁVEL
-
-## 10.1.
-
+CLÁUSULA DÉCIMA – PRIVACIDADE E USO RESPONSÁVEL
+10.1.
 O ProxyEdu pode operar com recursos de monitoramento de rede e controle de acesso.
 
-## 10.2.
-
+10.2.
 O Licenciado é responsável por garantir:
 
-* autorização adequada para utilização;
-* transparência com usuários;
-* conformidade com legislação aplicável;
-* proteção dos dados coletados.
-
-## 10.3.
-
+autorização adequada para utilização;
+transparência com usuários;
+conformidade com legislação aplicável;
+proteção dos dados coletados.
+10.3.
 O Software não autoriza monitoramento ilegal ou não autorizado.
 
----
-
-# CLÁUSULA DÉCIMA PRIMEIRA – RESCISÃO
-
-## 11.1.
-
+CLÁUSULA DÉCIMA PRIMEIRA – RESCISÃO
+11.1.
 Esta Licença poderá ser encerrada caso o Licenciado viole seus termos.
 
-## 11.2.
-
+11.2.
 Em caso de violação, o Licenciado deverá interromper o uso não autorizado do Software.
 
----
-
-# CLÁUSULA DÉCIMA SEGUNDA – LEGISLAÇÃO APLICÁVEL
-
-## 12.1.
-
+CLÁUSULA DÉCIMA SEGUNDA – LEGISLAÇÃO APLICÁVEL
+12.1.
 Esta Licença será interpretada conforme as leis da República Federativa do Brasil.
 
-## 12.2.
-
+12.2.
 Eventuais conflitos deverão ser resolvidos conforme legislação brasileira aplicável.
 
----
-
-# Aviso
-
+Aviso
 O ProxyEdu Community Edition é disponibilizado para incentivar aprendizado, colaboração e uso educacional.
 
 O uso comercial, exploração econômica e criação de serviços baseados no Software podem exigir autorização ou licença comercial específica.
