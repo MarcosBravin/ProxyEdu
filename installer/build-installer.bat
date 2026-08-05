@@ -5,8 +5,8 @@ set SCRIPT_DIR=%~dp0
 set REPO_DIR=%SCRIPT_DIR%..
 set NSI_FILE=%SCRIPT_DIR%ProxyEduInstaller.nsi
 set OUT_DIR=%REPO_DIR%\artifacts\installer
-set APP_VERSION=1.1.12
-set APP_FILE_VERSION=1.1.12.0
+set APP_VERSION=1.1.13
+set APP_FILE_VERSION=1.1.13.0
 set SIGN_CERT_THUMBPRINT=
 
 :parse_args
