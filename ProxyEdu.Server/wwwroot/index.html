@@ -404,6 +404,58 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 .badge.whitelist { background: rgba(14,165,233,0.1); color: var(--accent2); border: 1px solid rgba(14,165,233,0.25); }
 .badge.blacklist { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
 
+.temporary-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(14,165,233,0.3);
+  border-radius: var(--radius);
+  background: rgba(14,165,233,0.08);
+  margin-bottom: 18px;
+}
+.temporary-summary .material-symbols-rounded { color: var(--accent2); }
+.temporary-summary-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.temporary-summary-text { margin-top: 2px; font-size: 12px; color: var(--text3); }
+.duration-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.duration-option {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text2);
+  cursor: pointer;
+  font: 700 12px var(--font);
+  padding: 9px 6px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.duration-option:hover, .duration-option.selected {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.temporary-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 12px;
+}
+.temporary-card-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  color: var(--accent2);
+  font-size: 11px;
+  font-weight: 700;
+}
+.temporary-card-status span:last-child { font-family: var(--mono); }
+
 /* ─── ACTION BUTTONS ──────────────────────────────────────── */
 .action-row { display: flex; gap: 6px; align-items: center; }
 .btn {
@@ -430,6 +482,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 .btn-green:hover { background: var(--green-bg); }
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 .btn-lg { padding: 10px 20px; font-size: 14px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* ─── FILTERS ─────────────────────────────────────────────── */
 .filter-tabs {
@@ -666,6 +719,12 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 }
 .mc-actions { display: flex; gap: 6px; margin-top: 10px; }
 .mc-actions .btn { flex: 1; justify-content: center; }
+
+@media (max-width: 560px) {
+  .duration-options { grid-template-columns: repeat(2, 1fr); }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { justify-content: center; }
+}
 
 /* ─── SCROLLBAR ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -1423,6 +1482,57 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   </div>
 </div>
 
+<!-- ─── TEMPORARY ACCESS MODAL ───────────────────────────── -->
+<div class="modal-overlay" id="modalTemporaryAccess" role="dialog" aria-modal="true" aria-labelledby="temporaryAccessTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="temporaryAccessTitle">Conceder acesso temporário</div>
+        <div id="temporaryAccessStudent" style="font-size:12px;color:var(--text3);margin-top:2px"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalTemporaryAccess')" aria-label="Fechar">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="temporaryAccessStudentId">
+      <div class="temporary-summary" id="temporaryAccessSummary">
+        <span class="material-symbols-rounded">shield_clock</span>
+        <div>
+          <div class="temporary-summary-title">Liberação segura e reversível</div>
+          <div class="temporary-summary-text">Ao encerrar ou expirar, o aluno volta automaticamente ao estado anterior.</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="temporaryAccessMinutes">Duração</label>
+        <div class="duration-options" id="temporaryDurationOptions">
+          <button type="button" class="duration-option" data-minutes="5" onclick="selectTemporaryDuration(5)">5 min</button>
+          <button type="button" class="duration-option" data-minutes="15" onclick="selectTemporaryDuration(15)">15 min</button>
+          <button type="button" class="duration-option selected" data-minutes="30" onclick="selectTemporaryDuration(30)">30 min</button>
+          <button type="button" class="duration-option" data-minutes="45" onclick="selectTemporaryDuration(45)">45 min</button>
+          <button type="button" class="duration-option" data-minutes="60" onclick="selectTemporaryDuration(60)">1 hora</button>
+          <button type="button" class="duration-option" data-minutes="90" onclick="selectTemporaryDuration(90)">1h 30</button>
+          <button type="button" class="duration-option" data-minutes="120" onclick="selectTemporaryDuration(120)">2 horas</button>
+          <button type="button" class="duration-option" data-minutes="240" onclick="selectTemporaryDuration(240)">4 horas</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="temporaryAccessMinutes">Tempo personalizado (minutos)</label>
+        <input class="form-input" id="temporaryAccessMinutes" type="number" min="1" max="1440" value="30" inputmode="numeric" oninput="updateTemporaryAccessPreview()">
+        <div id="temporaryAccessError" style="display:none;font-size:12px;color:var(--red)"></div>
+      </div>
+      <div class="temporary-preview" id="temporaryAccessPreview" aria-live="polite"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" id="cancelTemporaryAccessBtn" style="display:none;margin-right:auto" onclick="cancelTemporaryAccessFromModal()">
+        <span class="material-symbols-rounded icon-btn">timer_off</span> Encerrar agora
+      </button>
+      <button class="btn btn-outline" onclick="closeModal('modalTemporaryAccess')">Voltar</button>
+      <button class="btn btn-primary" id="saveTemporaryAccessBtn" onclick="saveTemporaryAccess()">
+        <span class="material-symbols-rounded icon-btn">schedule</span> Conceder acesso
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── STUDENT DETAIL MODAL ──────────────────────────────── -->
 <div class="modal-overlay" id="modalStudentDetail">
   <div class="modal" style="width:640px">
@@ -1541,6 +1651,7 @@ function updateClock() {
   const d = new Date();
   const el = document.getElementById('dashboardTime');
   if (el) el.textContent = d.toLocaleString('pt-BR', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  updateTemporaryAccessCountdowns();
 }
 
 function initTheme() {
@@ -2145,24 +2256,26 @@ function renderMonitor() {
   }
   grid.innerHTML = students.map(s => {
     const statusClass = !s.isConnected ? 'offline' : s.isBlocked ? 'blocked' : '';
+    const temporaryActive = isTemporaryAccessActive(s);
     return `<div class="monitor-card ${statusClass}" onclick="showStudentDetail('${s.id}')">
       <div class="mc-top">
         <div class="mc-avatar"><span class="material-symbols-rounded">person</span></div>
-        ${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : s.hasTemporaryAccess ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">schedule</span> Liberado temporário</span>' : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}
+        ${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : temporaryActive ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">schedule</span> Temporário</span>' : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}
       </div>
       <div class="mc-name">${s.name}</div>
       <div class="mc-ip">${s.ipAddress}</div>
       <div class="mc-url" title="${s.currentUrl || 'Sem atividade recente'}">${s.currentUrl || 'Sem atividade recente'}</div>
+      ${temporaryActive ? `<div class="temporary-card-status"><span>Expira em</span><span data-temporary-until="${s.temporaryAccessUntilUtc}">${formatTemporaryRemaining(s.temporaryAccessUntilUtc)}</span></div>` : ''}
       <div class="mc-actions">
         ${isAdminUser() ? (s.isBlocked
           ? `<button class="btn btn-green btn-sm" onclick="event.stopPropagation();toggleBlock('${s.id}',false)"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar</button>`
           : `<button class="btn btn-red btn-sm" onclick="event.stopPropagation();toggleBlock('${s.id}',true)"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear</button>`)
           : ''}
-        ${isAdminUser() ? (s.bypassFilters
+        ${isAdminUser() && !temporaryActive ? (s.bypassFilters
           ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();toggleBypassFilters('${s.id}',false)"><span class="material-symbols-rounded icon-btn">filter_alt</span></button>`
           : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();toggleBypassFilters('${s.id}',true)"><span class="material-symbols-rounded icon-btn">language</span></button>`)
           : ''}
-        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();grantTemporaryAccess('${s.id}')"><span class="material-symbols-rounded icon-inline">schedule</span></button>
+        <button class="btn ${temporaryActive ? 'btn-red' : 'btn-outline'} btn-sm" title="${temporaryActive ? 'Gerenciar acesso temporário' : 'Conceder acesso temporário'}" onclick="event.stopPropagation();grantTemporaryAccess('${s.id}')"><span class="material-symbols-rounded icon-inline">${temporaryActive ? 'timer_off' : 'schedule'}</span></button>
         <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showStudentDetail('${s.id}')"><span class="material-symbols-rounded icon-inline">visibility</span></button>
       </div>
     </div>`;
@@ -2238,7 +2351,7 @@ function renderStudentsTable() {
       <td><span style="font-family:var(--mono);font-size:11px">${s.macAddress || '—'}</span></td>
       <td>${s.os || '—'}</td>
       <td>${s.group || 'default'}</td>
-      <td>${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : s.hasTemporaryAccess ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">schedule</span> Liberado temporário</span>' : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}</td>
+      <td>${s.isBlocked ? '<span class="badge blocked"><span class="material-symbols-rounded icon-btn">lock</span> Bloqueado</span>' : isTemporaryAccessActive(s) ? `<span class="badge released"><span class="material-symbols-rounded icon-btn">schedule</span> <span data-temporary-until="${s.temporaryAccessUntilUtc}">${formatTemporaryRemaining(s.temporaryAccessUntilUtc)}</span></span>` : s.bypassFilters ? '<span class="badge released"><span class="material-symbols-rounded icon-btn">language</span> Liberado total</span>' : s.isConnected ? '<span class="badge online">Online</span>' : '<span class="badge offline">Offline</span>'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(s.lastSeen)}</td>
       <td><div style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-family:var(--mono);color:var(--text3)">${s.currentUrl || '—'}</div></td>
       <td>
@@ -2246,10 +2359,10 @@ function renderStudentsTable() {
           ${isAdminUser() ? (s.isBlocked
             ? `<button class="btn btn-green btn-sm" onclick="toggleBlock('${s.id}',false)"><span class="material-symbols-rounded icon-btn">lock_open</span></button>`
             : `<button class="btn btn-red btn-sm" onclick="toggleBlock('${s.id}',true)"><span class="material-symbols-rounded icon-btn">lock</span></button>`) : ''}
-          ${isAdminUser() ? (s.bypassFilters
+          ${isAdminUser() && !isTemporaryAccessActive(s) ? (s.bypassFilters
             ? `<button class="btn btn-outline btn-sm" onclick="toggleBypassFilters('${s.id}',false)"><span class="material-symbols-rounded icon-inline">filter_alt</span></button>`
             : `<button class="btn btn-primary btn-sm" onclick="toggleBypassFilters('${s.id}',true)"><span class="material-symbols-rounded icon-inline">language</span></button>`) : ''}
-          <button class="btn btn-outline btn-sm" onclick="grantTemporaryAccess('${s.id}')"><span class="material-symbols-rounded icon-inline">schedule</span></button>
+          <button class="btn ${isTemporaryAccessActive(s) ? 'btn-red' : 'btn-outline'} btn-sm" title="${isTemporaryAccessActive(s) ? 'Gerenciar acesso temporário' : 'Conceder acesso temporário'}" onclick="grantTemporaryAccess('${s.id}')"><span class="material-symbols-rounded icon-inline">${isTemporaryAccessActive(s) ? 'timer_off' : 'schedule'}</span></button>
           <button class="btn btn-outline btn-sm" onclick="showStudentDetail('${s.id}')"><span class="material-symbols-rounded icon-inline">visibility</span></button>
           ${isAdminUser() ? `<button class="btn btn-outline btn-sm" onclick="openEditStudent('${s.id}')"><span class="material-symbols-rounded icon-inline">edit</span></button>` : ''}
           ${isAdminUser() ? `<button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')"><span class="material-symbols-rounded icon-inline">delete</span></button>` : ''}
@@ -2280,6 +2393,8 @@ async function toggleBlock(id, block) {
   const data = await api('POST', `/students/${id}/${action}`);
   const student = students.find(s => s.id === id);
   if (student) {
+    student.temporaryAccessUntilUtc = null;
+    student.hasTemporaryAccess = false;
     student.isBlocked = block;
     if (block) student.bypassFilters = false;
   }
@@ -2293,6 +2408,8 @@ async function toggleBypassFilters(id, bypass) {
   await api('POST', `/students/${id}/${action}`);
   const student = students.find(s => s.id === id);
   if (student) {
+    student.temporaryAccessUntilUtc = null;
+    student.hasTemporaryAccess = false;
     student.bypassFilters = bypass;
     if (bypass) student.isBlocked = false;
   }
@@ -2303,56 +2420,171 @@ async function toggleBypassFilters(id, bypass) {
 
 async function blockAll() {
   await api('POST', '/students/block-all');
-  students.forEach(s => { s.isBlocked = true; s.bypassFilters = false; });
+  students.forEach(s => { s.isBlocked = true; s.bypassFilters = false; s.temporaryAccessUntilUtc = null; s.hasTemporaryAccess = false; });
   renderStudentsTable(); renderMonitor(); renderDashboardFromLocal();
   toast('Todos os alunos foram bloqueados', 'error');
 }
 
 async function unblockAll() {
   await api('POST', '/students/unblock-all');
-  students.forEach(s => s.isBlocked = false);
+  students.forEach(s => { s.isBlocked = false; s.temporaryAccessUntilUtc = null; s.hasTemporaryAccess = false; });
   renderStudentsTable(); renderMonitor(); renderDashboardFromLocal();
   toast('Todos os alunos foram liberados', 'success');
 }
 
 async function releaseAllSitesForAll() {
   await api('POST', '/students/release-all-sites');
-  students.forEach(s => { s.bypassFilters = true; s.isBlocked = false; });
+  students.forEach(s => { s.bypassFilters = true; s.isBlocked = false; s.temporaryAccessUntilUtc = null; s.hasTemporaryAccess = false; });
   renderStudentsTable(); renderMonitor(); renderDashboardFromLocal();
   toast('Liberação total ativada para todos', 'info');
 }
 
 async function restoreFiltersForAll() {
   await api('POST', '/students/restore-filters');
-  students.forEach(s => s.bypassFilters = false);
+  students.forEach(s => { s.bypassFilters = false; s.temporaryAccessUntilUtc = null; s.hasTemporaryAccess = false; });
   renderStudentsTable(); renderMonitor(); renderDashboardFromLocal();
   toast('Filtros restaurados para todos', 'success');
 }
 
-async function grantTemporaryAccess(id) {
-  const minutesPrompt = prompt('Informe a duração em minutos para liberação temporária:');
-  if (minutesPrompt === null) return;
+function isTemporaryAccessActive(student) {
+  if (!student?.temporaryAccessUntilUtc) return false;
+  return new Date(student.temporaryAccessUntilUtc).getTime() > Date.now();
+}
 
-  const minutes = parseInt(minutesPrompt.trim(), 10);
-  if (Number.isNaN(minutes) || minutes <= 0) {
-    toast('Duração inválida. Informe um número de minutos maior que zero.', 'error');
-    return;
+function formatTemporaryRemaining(untilUtc) {
+  const remainingMs = Math.max(0, new Date(untilUtc).getTime() - Date.now());
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}min`;
+  return `${minutes}min ${String(seconds).padStart(2, '0')}s`;
+}
+
+function updateTemporaryAccessCountdowns() {
+  let hasExpired = false;
+  document.querySelectorAll('[data-temporary-until]').forEach(el => {
+    const until = el.dataset.temporaryUntil;
+    if (new Date(until).getTime() <= Date.now()) {
+      el.textContent = 'expirando...';
+      hasExpired = true;
+      return;
+    }
+    el.textContent = formatTemporaryRemaining(until);
+  });
+
+  if (hasExpired && !updateTemporaryAccessCountdowns.refreshPending) {
+    updateTemporaryAccessCountdowns.refreshPending = true;
+    loadStudents().finally(() => { updateTemporaryAccessCountdowns.refreshPending = false; });
   }
+}
 
-  const result = await api('POST', `/students/${id}/temporary-access`, { minutes });
-  if (!result) {
-    toast('Falha ao conceder liberação temporária.', 'error');
-    return;
-  }
-
+function grantTemporaryAccess(id) {
   const student = students.find(s => s.id === id);
-  if (student) {
-    student.temporaryAccessUntilUtc = new Date(Date.now() + minutes * 60000).toISOString();
-    student.bypassFilters = true;
-    student.isBlocked = false;
+  if (!student) {
+    toast('Aluno não encontrado. Atualize a página e tente novamente.', 'error');
+    return;
   }
-  renderStudentsTable(); renderMonitor();
-  toast(`Liberação temporária concedida por ${minutes} minutos`, 'success');
+
+  const active = isTemporaryAccessActive(student);
+  document.getElementById('temporaryAccessStudentId').value = student.id;
+  document.getElementById('temporaryAccessStudent').textContent = `${student.name} • ${student.ipAddress}`;
+  document.getElementById('temporaryAccessTitle').textContent = active ? 'Gerenciar acesso temporário' : 'Conceder acesso temporário';
+  document.getElementById('saveTemporaryAccessBtn').innerHTML = `<span class="material-symbols-rounded icon-btn">schedule</span> ${active ? 'Atualizar duração' : 'Conceder acesso'}`;
+  document.getElementById('cancelTemporaryAccessBtn').style.display = active ? 'inline-flex' : 'none';
+  document.getElementById('temporaryAccessSummary').querySelector('.temporary-summary-text').textContent = active
+    ? `Acesso ativo até ${new Date(student.temporaryAccessUntilUtc).toLocaleString('pt-BR')}. Você pode ajustar a duração ou encerrá-lo agora.`
+    : 'Ao encerrar ou expirar, o aluno volta automaticamente ao estado anterior.';
+  document.getElementById('temporaryAccessMinutes').value = 30;
+  document.getElementById('temporaryAccessError').style.display = 'none';
+  selectTemporaryDuration(30);
+  openModal('modalTemporaryAccess');
+  setTimeout(() => document.getElementById('temporaryAccessMinutes')?.focus(), 50);
+}
+
+function selectTemporaryDuration(minutes) {
+  document.getElementById('temporaryAccessMinutes').value = minutes;
+  document.querySelectorAll('#temporaryDurationOptions .duration-option').forEach(btn => {
+    btn.classList.toggle('selected', Number(btn.dataset.minutes) === minutes);
+  });
+  updateTemporaryAccessPreview();
+}
+
+function getTemporaryAccessMinutes() {
+  const input = document.getElementById('temporaryAccessMinutes');
+  const minutes = Number(input.value);
+  const valid = Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440;
+  const error = document.getElementById('temporaryAccessError');
+  error.textContent = valid ? '' : 'Informe um valor inteiro entre 1 minuto e 24 horas.';
+  error.style.display = valid ? 'none' : 'block';
+  input.setAttribute('aria-invalid', valid ? 'false' : 'true');
+  return valid ? minutes : null;
+}
+
+function updateTemporaryAccessPreview() {
+  const minutes = getTemporaryAccessMinutes();
+  document.querySelectorAll('#temporaryDurationOptions .duration-option').forEach(btn => {
+    btn.classList.toggle('selected', minutes !== null && Number(btn.dataset.minutes) === minutes);
+  });
+  const preview = document.getElementById('temporaryAccessPreview');
+  preview.innerHTML = minutes === null
+    ? '<span class="material-symbols-rounded icon-btn">error</span> Corrija a duração para continuar.'
+    : `<span class="material-symbols-rounded icon-btn">event</span> Término previsto: <strong>${new Date(Date.now() + minutes * 60000).toLocaleString('pt-BR')}</strong>`;
+}
+
+async function saveTemporaryAccess() {
+  const id = document.getElementById('temporaryAccessStudentId').value;
+  const minutes = getTemporaryAccessMinutes();
+  if (minutes === null) return;
+
+  const btn = document.getElementById('saveTemporaryAccessBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-rounded icon-btn">hourglass_top</span> Salvando...';
+  const result = await api('POST', `/students/${id}/temporary-access`, { minutes });
+  btn.disabled = false;
+
+  if (!result?.student) {
+    btn.innerHTML = '<span class="material-symbols-rounded icon-btn">schedule</span> Tentar novamente';
+    toast('Não foi possível conceder o acesso temporário.', 'error');
+    return;
+  }
+
+  updateStudentState(result.student);
+  closeModal('modalTemporaryAccess');
+  toast(`Acesso temporário concedido por ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}.`, 'success');
+}
+
+async function cancelTemporaryAccess(id) {
+  const studentId = id || document.getElementById('temporaryAccessStudentId').value;
+  const btn = document.getElementById('cancelTemporaryAccessBtn');
+  if (btn) btn.disabled = true;
+  const result = await api('DELETE', `/students/${studentId}/temporary-access`);
+  if (btn) btn.disabled = false;
+
+  if (!result?.student) {
+    toast('Não foi possível encerrar o acesso temporário.', 'error');
+    return false;
+  }
+
+  updateStudentState(result.student);
+  toast('Acesso temporário encerrado. O estado anterior foi restaurado.', 'success');
+  return true;
+}
+
+async function cancelTemporaryAccessFromModal() {
+  if (await cancelTemporaryAccess()) closeModal('modalTemporaryAccess');
+}
+
+function updateStudentState(incoming) {
+  const index = students.findIndex(s => s.id === incoming.id);
+  if (index >= 0) {
+    const currentUrl = incoming.currentUrl || students[index].currentUrl;
+    students[index] = { ...incoming, currentUrl };
+  } else {
+    students.push(incoming);
+  }
+  renderStudentsTable();
+  renderMonitor();
 }
 
 // ─── STUDENT EDIT ──────────────────────────────────────────────
@@ -2391,6 +2623,7 @@ async function deleteStudent(id) {
 function showStudentDetail(id) {
   const s = students.find(x => x.id === id);
   if (!s) return;
+  const temporaryActive = isTemporaryAccessActive(s);
   document.getElementById('detailTitle').textContent = `Aluno: ${s.name}`;
   document.getElementById('detailBody').innerHTML = `
     <div class="grid-2" style="margin-bottom:16px">
@@ -2408,7 +2641,7 @@ function showStudentDetail(id) {
       <div>
         <div class="form-label" style="margin-bottom:6px">Estatísticas</div>
         <table style="width:100%;font-size:13px">
-          <tr><td style="padding:4px 0;color:var(--text3)">Status</td><td style="padding:4px 0">${s.isBlocked?'<span class="badge blocked">Bloqueado</span>':s.hasTemporaryAccess?'<span class="badge released">Liberado temporário</span>':s.bypassFilters?'<span class="badge released">Liberado total</span>':s.isConnected?'<span class="badge online">Online</span>':'<span class="badge offline">Offline</span>'}</td></tr>
+          <tr><td style="padding:4px 0;color:var(--text3)">Status</td><td style="padding:4px 0">${s.isBlocked?'<span class="badge blocked">Bloqueado</span>':temporaryActive?'<span class="badge released">Liberado temporariamente</span>':s.bypassFilters?'<span class="badge released">Liberado total</span>':s.isConnected?'<span class="badge online">Online</span>':'<span class="badge offline">Offline</span>'}</td></tr>
           <tr><td style="padding:4px 0;color:var(--text3)">Requisições</td><td style="padding:4px 0">${s.totalRequests.toLocaleString()}</td></tr>
           <tr><td style="padding:4px 0;color:var(--text3)">Bloqueios</td><td style="padding:4px 0;color:var(--red)">${s.blockedRequests}</td></tr>
           <tr><td style="padding:4px 0;color:var(--text3)">Dados</td><td style="padding:4px 0">${formatBytes(s.bytesTransferred)}</td></tr>
@@ -2418,16 +2651,17 @@ function showStudentDetail(id) {
       </div>
     </div>
     <div class="form-group"><div class="form-label">Site atual</div><div class="domain-pill" style="font-size:12px">${s.currentUrl || 'Sem atividade recente'}</div></div>
-    ${s.hasTemporaryAccess ? `<div class="form-group"><div class="form-label">Acesso temporário até</div><div>${new Date(s.temporaryAccessUntilUtc).toLocaleString('pt-BR')}</div></div>` : ''}
-    <div style="display:flex;gap:10px;margin-top:8px">
+    ${temporaryActive ? `<div class="temporary-summary"><span class="material-symbols-rounded">shield_clock</span><div><div class="temporary-summary-title">Acesso temporário ativo</div><div class="temporary-summary-text">Encerra em ${new Date(s.temporaryAccessUntilUtc).toLocaleString('pt-BR')} • <span data-temporary-until="${s.temporaryAccessUntilUtc}">${formatTemporaryRemaining(s.temporaryAccessUntilUtc)}</span> restantes</div></div></div>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
       ${isAdminUser()
         ? (s.isBlocked
             ? `<button class="btn btn-green" onclick="toggleBlock('${s.id}',false);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Aluno</button>`
-            : `<button class="btn btn-red" onclick="toggleBlock('${s.id}',true);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Aluno</button>`) : `<button class="btn btn-primary" onclick="grantTemporaryAccess('${s.id}');closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">schedule</span> Conceder Acesso Temporário</button>`}
-      ${isAdminUser()
+            : `<button class="btn btn-red" onclick="toggleBlock('${s.id}',true);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">lock</span> Bloquear Aluno</button>`) : ''}
+      ${isAdminUser() && !temporaryActive
         ? (s.bypassFilters
             ? `<button class="btn btn-outline" onclick="toggleBypassFilters('${s.id}',false);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">filter_alt</span> Restaurar Filtros</button>`
             : `<button class="btn btn-primary" onclick="toggleBypassFilters('${s.id}',true);closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">language</span> Liberar Todos Sites</button>`) : ''}
+      <button class="btn ${temporaryActive ? 'btn-red' : 'btn-primary'}" onclick="grantTemporaryAccess('${s.id}');closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-btn">${temporaryActive ? 'timer_off' : 'schedule'}</span> ${temporaryActive ? 'Gerenciar Tempo' : 'Acesso Temporário'}</button>
       ${isAdminUser() ? `<button class="btn btn-outline" onclick="openEditStudent('${s.id}');closeModal('modalStudentDetail')"><span class="material-symbols-rounded icon-inline">edit</span> Editar</button>` : ''}
     </div>
   `;

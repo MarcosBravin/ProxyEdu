@@ -141,7 +141,20 @@ public class StudentUpdateBuffer : BackgroundService
             {
                 foreach (var buffered in batch)
                 {
-                    _db.Students.Update(buffered.Student);
+                    // O snapshot do buffer pode ser anterior a uma ação do professor
+                    // (bloqueio, liberação total ou acesso temporário). Persiste somente
+                    // os campos de atividade para não desfazer essas ações de controle.
+                    var current = _db.Students.FindById(buffered.Student.Id);
+                    if (current == null)
+                        continue;
+
+                    current.LastSeen = buffered.Student.LastSeen;
+                    current.CurrentUrl = buffered.Student.CurrentUrl;
+                    current.TotalRequests = buffered.Student.TotalRequests;
+                    current.BytesTransferred = buffered.Student.BytesTransferred;
+                    current.BlockedRequests = buffered.Student.BlockedRequests;
+                    current.IsConnected = buffered.Student.IsConnected;
+                    _db.Students.Update(current);
                     Interlocked.Increment(ref _totalUpdatesFlushed);
                 }
             }, cancellationToken);

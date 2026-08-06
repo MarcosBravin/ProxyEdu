@@ -9,6 +9,7 @@ namespace ProxyEdu.Server.Controllers;
 [Route("api/[controller]")]
 public class StudentsController : ControllerBase
 {
+    private const int MaximumTemporaryAccessMinutes = 24 * 60;
     private readonly StudentManagerService _manager;
     private readonly DatabaseService _db;
 
@@ -70,13 +71,31 @@ public class StudentsController : ControllerBase
     public IActionResult GrantTemporaryAccess(string id, [FromBody] TemporaryAccessRequest request)
     {
         if (!CanViewStudentData()) return Forbid();
-        if (request == null || request.Minutes <= 0)
+        if (request == null || request.Minutes <= 0 || request.Minutes > MaximumTemporaryAccessMinutes)
         {
-            return BadRequest(new { error = "Duração inválida." });
+            return BadRequest(new { error = $"A duração deve estar entre 1 e {MaximumTemporaryAccessMinutes} minutos." });
         }
 
-        _manager.SetStudentTemporaryAccess(id, TimeSpan.FromMinutes(request.Minutes));
-        return Ok(new { success = true, expiresInMinutes = request.Minutes });
+        var student = _manager.SetStudentTemporaryAccess(id, TimeSpan.FromMinutes(request.Minutes));
+        if (student == null) return NotFound(new { error = "Aluno não encontrado." });
+
+        return Ok(new
+        {
+            success = true,
+            expiresAtUtc = student.TemporaryAccessUntilUtc,
+            student
+        });
+    }
+
+    [HttpDelete("{id}/temporary-access")]
+    public IActionResult CancelTemporaryAccess(string id)
+    {
+        if (!CanViewStudentData()) return Forbid();
+
+        var student = _manager.CancelStudentTemporaryAccess(id);
+        if (student == null) return NotFound(new { error = "Aluno não encontrado." });
+
+        return Ok(new { success = true, student });
     }
 
     [HttpPost("{id}/release-all-sites")]

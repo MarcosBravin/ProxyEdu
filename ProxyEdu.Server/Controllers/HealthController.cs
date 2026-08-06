@@ -8,6 +8,8 @@ namespace ProxyEdu.Server.Controllers;
 public class HealthController : ControllerBase
 {
     private static readonly DateTime StartTime = DateTime.UtcNow;
+    private static readonly string ApplicationVersion =
+        typeof(HealthController).Assembly.GetName().Version?.ToString(3) ?? "unknown";
     private readonly ProxyServerService _proxy;
     private readonly DatabaseService _database;
 
@@ -25,7 +27,7 @@ public class HealthController : ControllerBase
             status = "healthy",
             timestamp = DateTime.UtcNow,
             uptime = (DateTime.UtcNow - StartTime).TotalSeconds,
-            version = "2.0.0",
+            version = ApplicationVersion,
             server = Environment.MachineName
         });
     }

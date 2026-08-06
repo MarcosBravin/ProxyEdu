@@ -12,6 +12,7 @@ public class StudentManagerService : IHostedService
     private static readonly TimeSpan StatsCacheDuration = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan BroadcastInterval = TimeSpan.FromSeconds(2);
     private const string StatsCacheKey = "DashboardStats";
+    private readonly object _temporaryAccessLock = new();
 
     private readonly DatabaseService _db;
     private readonly IHubContext<ProxyHub> _hub;
@@ -214,6 +215,7 @@ public class StudentManagerService : IHostedService
     {
         var student = _db.Students.FindById(studentId);
         if (student == null) return;
+        ClearTemporaryAccessState(student, restorePreviousState: false);
         student.IsBlocked = blocked;
         if (blocked) student.BypassFilters = false;
         _db.Students.Update(student);
@@ -227,6 +229,7 @@ public class StudentManagerService : IHostedService
         var students = _db.Students.Find(s => s.Group == groupName).ToList();
         foreach (var s in students)
         {
+            ClearTemporaryAccessState(s, restorePreviousState: false);
             s.IsBlocked = blocked;
             if (blocked) s.BypassFilters = false;
             _db.Students.Update(s);
@@ -246,6 +249,7 @@ public class StudentManagerService : IHostedService
         var all = _db.Students.FindAll().ToList();
         foreach (var s in all)
         {
+            ClearTemporaryAccessState(s, restorePreviousState: false);
             s.IsBlocked = blocked;
             if (blocked) s.BypassFilters = false;
             _db.Students.Update(s);
@@ -256,47 +260,111 @@ public class StudentManagerService : IHostedService
 
     public void SetStudentBypassFilters(string studentId, bool bypass)
     {
-        var student = _db.Students.FindById(studentId);
-        if (student == null) return;
-        student.BypassFilters = bypass;
-        if (bypass) student.IsBlocked = false;
-        _db.Students.Update(student);
-        InvalidateStatsCache();
-        Publish("StudentUpdated", MaterializeForDashboard(student));
-    }
-
-    public void SetStudentTemporaryAccess(string studentId, TimeSpan duration)
-    {
-        var student = _db.Students.FindById(studentId);
-        if (student == null) return;
-
-        student.TemporaryAccessPreviousBlockedState = student.IsBlocked;
-        student.IsBlocked = false;
-        student.BypassFilters = true;
-        student.TemporaryAccessUntilUtc = DateTime.UtcNow.Add(duration);
-
-        _db.Students.Update(student);
-        InvalidateStatsCache();
-        Publish("StudentUpdated", MaterializeForDashboard(student));
-    }
-
-    private StudentInfo? GetStudentByIpAndExpireTemporaryAccess(string ip)
-    {
-        var student = FindStudentByIp(ip);
-        if (student == null) return null;
-
-        if (student.TemporaryAccessUntilUtc.HasValue && student.TemporaryAccessUntilUtc.Value <= DateTime.UtcNow)
+        lock (_temporaryAccessLock)
         {
-            student.TemporaryAccessUntilUtc = null;
-            student.BypassFilters = false;
-            student.IsBlocked = student.TemporaryAccessPreviousBlockedState;
-            student.TemporaryAccessPreviousBlockedState = false;
+            var student = _db.Students.FindById(studentId);
+            if (student == null) return;
+            ClearTemporaryAccessState(student, restorePreviousState: false);
+            ApplyAllSitesAccess(student, bypass);
             _db.Students.Update(student);
             InvalidateStatsCache();
             Publish("StudentUpdated", MaterializeForDashboard(student));
         }
+    }
 
-        return student;
+    public StudentInfo? SetStudentTemporaryAccess(string studentId, TimeSpan duration)
+    {
+        lock (_temporaryAccessLock)
+        {
+            var student = _db.Students.FindById(studentId);
+            if (student == null) return null;
+
+            // An expired grant may not have been observed by the polling loop yet.
+            // Restore it before capturing a new baseline.
+            ExpireTemporaryAccess(student);
+
+            // A renewal changes only the deadline. The state from before the first
+            // grant must remain intact so cancellation/expiry restores it correctly.
+            if (!student.HasTemporaryAccess)
+            {
+                student.TemporaryAccessPreviousBlockedState = student.IsBlocked;
+                student.TemporaryAccessPreviousBypassFiltersState = student.BypassFilters;
+            }
+
+            // Acesso temporário tem exatamente o mesmo efeito de "Liberar todos
+            // os sites"; a única diferença é a expiração e restauração do estado.
+            ApplyAllSitesAccess(student, bypass: true);
+            student.TemporaryAccessUntilUtc = DateTime.UtcNow.Add(duration);
+
+            _db.Students.Update(student);
+            InvalidateStatsCache();
+            var snapshot = MaterializeForDashboard(student);
+            Publish("StudentUpdated", snapshot);
+            return snapshot;
+        }
+    }
+
+    public StudentInfo? CancelStudentTemporaryAccess(string studentId)
+    {
+        lock (_temporaryAccessLock)
+        {
+            var student = _db.Students.FindById(studentId);
+            if (student == null) return null;
+
+            if (student.TemporaryAccessUntilUtc.HasValue)
+            {
+                ClearTemporaryAccessState(student, restorePreviousState: true);
+                _db.Students.Update(student);
+                InvalidateStatsCache();
+            }
+
+            var snapshot = MaterializeForDashboard(student);
+            Publish("StudentUpdated", snapshot);
+            return snapshot;
+        }
+    }
+
+    private static void ClearTemporaryAccessState(StudentInfo student, bool restorePreviousState)
+    {
+        if (restorePreviousState)
+        {
+            student.IsBlocked = student.TemporaryAccessPreviousBlockedState;
+            student.BypassFilters = student.TemporaryAccessPreviousBypassFiltersState;
+        }
+
+        student.TemporaryAccessUntilUtc = null;
+        student.TemporaryAccessPreviousBlockedState = false;
+        student.TemporaryAccessPreviousBypassFiltersState = false;
+    }
+
+    private static void ApplyAllSitesAccess(StudentInfo student, bool bypass)
+    {
+        student.BypassFilters = bypass;
+        if (bypass) student.IsBlocked = false;
+    }
+
+    private bool ExpireTemporaryAccess(StudentInfo student)
+    {
+        if (!student.TemporaryAccessUntilUtc.HasValue || student.TemporaryAccessUntilUtc.Value > DateTime.UtcNow)
+            return false;
+
+        ClearTemporaryAccessState(student, restorePreviousState: true);
+        _db.Students.Update(student);
+        InvalidateStatsCache();
+        Publish("StudentUpdated", MaterializeForDashboard(student));
+        return true;
+    }
+
+    private StudentInfo? GetStudentByIpAndExpireTemporaryAccess(string ip)
+    {
+        lock (_temporaryAccessLock)
+        {
+            var student = FindStudentByIp(ip);
+            if (student == null) return null;
+
+            ExpireTemporaryAccess(student);
+            return student;
+        }
     }
 
     public bool IsStudentBypassFilters(string ip)
@@ -316,8 +384,8 @@ public class StudentManagerService : IHostedService
         var all = _db.Students.FindAll().ToList();
         foreach (var s in all)
         {
-            s.BypassFilters = bypass;
-            if (bypass) s.IsBlocked = false;
+            ClearTemporaryAccessState(s, restorePreviousState: false);
+            ApplyAllSitesAccess(s, bypass);
             _db.Students.Update(s);
         }
         InvalidateStatsCache();
@@ -326,7 +394,10 @@ public class StudentManagerService : IHostedService
 
     public bool IsStudentBlocked(string ip)
     {
-        var student = FindStudentByIp(ip);
+        // Também processa a expiração aqui. Assim, se o aluno estava bloqueado
+        // antes da liberação temporária, nenhuma primeira requisição escapa no
+        // instante em que o prazo termina.
+        var student = GetStudentByIpAndExpireTemporaryAccess(ip);
         return student?.IsBlocked ?? false;
     }
 
@@ -338,15 +409,7 @@ public class StudentManagerService : IHostedService
 
         foreach (var student in students)
         {
-            if (student.TemporaryAccessUntilUtc.HasValue && student.TemporaryAccessUntilUtc.Value <= DateTime.UtcNow)
-            {
-                student.TemporaryAccessUntilUtc = null;
-                student.BypassFilters = false;
-                student.IsBlocked = student.TemporaryAccessPreviousBlockedState;
-                student.TemporaryAccessPreviousBlockedState = false;
-                _db.Students.Update(student);
-                changed = true;
-            }
+            changed |= ExpireTemporaryAccess(student);
         }
 
         if (changed) InvalidateStatsCache();
@@ -387,15 +450,7 @@ public class StudentManagerService : IHostedService
         var changed = false;
         foreach (var student in students)
         {
-            if (student.TemporaryAccessUntilUtc.HasValue && student.TemporaryAccessUntilUtc.Value <= DateTime.UtcNow)
-            {
-                student.TemporaryAccessUntilUtc = null;
-                student.BypassFilters = false;
-                student.IsBlocked = student.TemporaryAccessPreviousBlockedState;
-                student.TemporaryAccessPreviousBlockedState = false;
-                _db.Students.Update(student);
-                changed = true;
-            }
+            changed |= ExpireTemporaryAccess(student);
         }
 
         if (changed) InvalidateStatsCache();

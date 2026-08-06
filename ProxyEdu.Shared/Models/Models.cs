@@ -17,6 +17,7 @@ public class StudentInfo
     public bool BypassFilters { get; set; } = false; // when true, ignores blacklist/whitelist rules
     public DateTime? TemporaryAccessUntilUtc { get; set; }
     public bool TemporaryAccessPreviousBlockedState { get; set; } = false;
+    public bool TemporaryAccessPreviousBypassFiltersState { get; set; } = false;
     public bool HasTemporaryAccess => TemporaryAccessUntilUtc.HasValue && TemporaryAccessUntilUtc.Value > DateTime.UtcNow;
     public int TotalRequests { get; set; } = 0;
     public int BlockedRequests { get; set; } = 0;
