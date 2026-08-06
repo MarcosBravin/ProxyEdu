@@ -550,6 +550,25 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 }
 .rule-search-clear.visible { display: inline-flex; }
 .rule-search-clear:hover { color: var(--text); background: var(--surface3); }
+.rule-page-header { align-items: center; }
+.rule-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) max-content max-content;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+.rule-toolbar .rule-search { width: 100%; min-width: 0; }
+.rule-toolbar .btn { white-space: nowrap; }
+@media (max-width: 900px) {
+  .rule-page-header { align-items: flex-start; flex-direction: column; }
+  .rule-toolbar { width: 100%; margin-left: 0; grid-template-columns: minmax(180px, 1fr) max-content max-content; }
+}
+@media (max-width: 560px) {
+  .rule-toolbar { grid-template-columns: 1fr 1fr; }
+  .rule-toolbar .rule-search { grid-column: 1 / -1; }
+  .rule-toolbar .btn { justify-content: center; }
+}
 
 /* ─── FORM ────────────────────────────────────────────────── */
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -720,6 +739,38 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 14px;
 }
+.monitor-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+}
+.monitor-status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-bg); }
+.monitor-count { color: var(--text3); font-family: var(--mono); font-size: 11px; }
+.monitor-offline-section { margin-top: 24px; }
+.monitor-offline-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  color: var(--text2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.monitor-offline-toggle:hover { border-color: var(--border2); background: var(--surface2); }
+.monitor-offline-toggle-main { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 700; }
+.monitor-offline-toggle .toggle-arrow { transition: transform 0.2s; }
+.monitor-offline-toggle[aria-expanded="true"] .toggle-arrow { transform: rotate(180deg); }
+.monitor-offline-grid { margin-top: 14px; }
 .monitor-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1057,9 +1108,17 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
           <button id="monitor-unblock-all" class="btn btn-green" onclick="unblockAll()"><span class="material-symbols-rounded icon-btn">lock_open</span> Liberar Todos</button>
         </div>
       </div>
-      <div class="monitor-grid" id="monitorGrid">
-        <div class="empty" style="grid-column:1/-1"><div class="empty-icon"><span class="material-symbols-rounded icon-inline">monitor</span></div><h3>Nenhum aluno conectado</h3></div>
+      <div class="monitor-section-heading"><span class="monitor-status-dot"></span>Computadores online <span class="monitor-count" id="monitorOnlineCount">0</span></div>
+      <div class="monitor-grid" id="monitorOnlineGrid">
+        <div class="empty" style="grid-column:1/-1"><div class="empty-icon"><span class="material-symbols-rounded icon-inline">monitor</span></div><h3>Nenhum computador online</h3></div>
       </div>
+      <section class="monitor-offline-section" id="monitorOfflineSection">
+        <button class="monitor-offline-toggle" id="monitorOfflineToggle" type="button" aria-expanded="false" aria-controls="monitorOfflineGrid" onclick="toggleOfflineComputers()">
+          <span class="monitor-offline-toggle-main"><span class="material-symbols-rounded icon-inline">computer_off</span>Computadores offline <span class="monitor-count" id="monitorOfflineCount">0</span></span>
+          <span class="material-symbols-rounded toggle-arrow" aria-hidden="true">expand_more</span>
+        </button>
+        <div class="monitor-grid monitor-offline-grid" id="monitorOfflineGrid" hidden></div>
+      </section>
     </div>
 
     <!-- ── STUDENTS PAGE ── -->
@@ -1113,12 +1172,12 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 
     <!-- ── WHITELIST PAGE ── -->
     <div class="page" id="page-whitelist">
-      <div class="page-header">
+      <div class="page-header rule-page-header">
         <div>
           <div class="page-title"><span class="material-symbols-rounded icon-inline">verified</span> Whitelist</div>
           <div class="page-sub">Sites sempre permitidos</div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="rule-toolbar">
           <label class="rule-search" for="whitelistSearch">
             <span class="material-symbols-rounded" aria-hidden="true">search</span>
             <input id="whitelistSearch" type="search" placeholder="Buscar domínio ou descrição..." oninput="handleRuleSearch('whitelist')" autocomplete="off" />
@@ -1143,12 +1202,12 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 
     <!-- ── BLACKLIST PAGE ── -->
     <div class="page" id="page-blacklist">
-      <div class="page-header">
+      <div class="page-header rule-page-header">
         <div>
           <div class="page-title"><span class="material-symbols-rounded icon-inline">block</span> Blacklist</div>
           <div class="page-sub">Sites sempre bloqueados</div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="rule-toolbar">
           <label class="rule-search" for="blacklistSearch">
             <span class="material-symbols-rounded" aria-hidden="true">search</span>
             <input id="blacklistSearch" type="search" placeholder="Buscar domínio ou descrição..." oninput="handleRuleSearch('blacklist')" autocomplete="off" />
@@ -1674,6 +1733,7 @@ let studentsPage = 1;
 let usersPage = 1;
 let whitelistPage = 1;
 let blacklistPage = 1;
+let showOfflineComputers = false;
 let updateStatus = null;
 let importRulesType = 'blacklist';
 const STUDENTS_PAGE_SIZE = 12;
@@ -2298,13 +2358,33 @@ function loadMonitor() {
 }
 
 function renderMonitor() {
-  const grid = document.getElementById('monitorGrid');
-  if (!grid) return;
-  if (!students.length) {
-    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon"><span class="material-symbols-rounded icon-inline">monitor</span></div><h3>Nenhum aluno conectado</h3></div>';
-    return;
-  }
-  grid.innerHTML = students.map(s => {
+  const onlineGrid = document.getElementById('monitorOnlineGrid');
+  const offlineGrid = document.getElementById('monitorOfflineGrid');
+  const offlineSection = document.getElementById('monitorOfflineSection');
+  const offlineToggle = document.getElementById('monitorOfflineToggle');
+  if (!onlineGrid || !offlineGrid || !offlineSection || !offlineToggle) return;
+
+  const online = students.filter(s => s.isConnected);
+  const offline = students.filter(s => !s.isConnected);
+  document.getElementById('monitorOnlineCount').textContent = online.length;
+  document.getElementById('monitorOfflineCount').textContent = offline.length;
+
+  onlineGrid.innerHTML = online.length
+    ? online.map(renderMonitorCard).join('')
+    : '<div class="empty" style="grid-column:1/-1"><div class="empty-icon"><span class="material-symbols-rounded icon-inline">computer_off</span></div><h3>Nenhum computador online</h3><p>Os computadores aparecerão aqui quando se conectarem.</p></div>';
+
+  offlineSection.style.display = offline.length ? '' : 'none';
+  offlineToggle.setAttribute('aria-expanded', String(showOfflineComputers));
+  offlineGrid.hidden = !showOfflineComputers;
+  offlineGrid.innerHTML = showOfflineComputers ? offline.map(renderMonitorCard).join('') : '';
+}
+
+function toggleOfflineComputers() {
+  showOfflineComputers = !showOfflineComputers;
+  renderMonitor();
+}
+
+function renderMonitorCard(s) {
     const statusClass = !s.isConnected ? 'offline' : s.isBlocked ? 'blocked' : '';
     const temporaryActive = isTemporaryAccessActive(s);
     return `<div class="monitor-card ${statusClass}" onclick="showStudentDetail('${s.id}')">
@@ -2329,7 +2409,6 @@ function renderMonitor() {
         <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showStudentDetail('${s.id}')"><span class="material-symbols-rounded icon-inline">visibility</span></button>
       </div>
     </div>`;
-  }).join('');
 }
 
 function updateMonitorCard(student) {
