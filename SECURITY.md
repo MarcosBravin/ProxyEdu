@@ -8,8 +8,9 @@ A versão estável mais recente recebe correções de segurança. Versões anter
 
 | Versão | Suporte |
 |---|---|
-| Versão estável mais recente | Suportada |
-| Versões anteriores | Sem garantia de correção |
+| `1.3.x` | Em desenvolvimento |
+| `1.2.x` | Suportada |
+| `1.1.x` e anteriores | Sem suporte |
 
 ## Como relatar uma vulnerabilidade
 
