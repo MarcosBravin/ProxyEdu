@@ -510,7 +510,19 @@ public class ProxyServerService : BackgroundService
 </html>";
 #endif
 
-        e.Ok(html);
+        // Titanium.Web.Proxy can encode string responses using its default code page.
+        // Keep the generated document ASCII-only so that accented text is rendered
+        // correctly even when an intermediary ignores the UTF-8 meta tag.
+        var asciiHtml = new System.Text.StringBuilder(html.Length);
+        foreach (var character in html)
+        {
+            if (character <= 0x7f)
+                asciiHtml.Append(character);
+            else
+                asciiHtml.Append("&#").Append((int)character).Append(';');
+        }
+
+        e.Ok(asciiHtml.ToString());
     }
 
     private void LogAccess(string ip, string url, string method, bool blocked, string reason = "")
