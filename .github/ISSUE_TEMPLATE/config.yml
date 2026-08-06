@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dúvidas e suporte da comunidade
+    url: https://github.com/MarcosBravin/ProxyEdu/discussions
+    about: Use as discussões para dúvidas de instalação, configuração e uso.
+  - name: Relatar uma vulnerabilidade de segurança
+    url: https://github.com/MarcosBravin/ProxyEdu/security/advisories/new
+    about: Não publique vulnerabilidades ou dados sensíveis em uma issue pública.
