@@ -510,6 +510,46 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   color: var(--text);
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
+.rule-search {
+  width: min(320px, 100%);
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.rule-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+}
+.rule-search > .material-symbols-rounded { color: var(--text3); font-size: 20px; }
+.rule-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+}
+.rule-search input::placeholder { color: var(--text3); }
+.rule-search input::-webkit-search-cancel-button { display: none; }
+.rule-search-clear {
+  display: none;
+  padding: 2px;
+  color: var(--text3);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.rule-search-clear.visible { display: inline-flex; }
+.rule-search-clear:hover { color: var(--text); background: var(--surface3); }
 
 /* ─── FORM ────────────────────────────────────────────────── */
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -1078,7 +1118,12 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
           <div class="page-title"><span class="material-symbols-rounded icon-inline">verified</span> Whitelist</div>
           <div class="page-sub">Sites sempre permitidos</div>
         </div>
-        <div style="display:flex;gap:10px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <label class="rule-search" for="whitelistSearch">
+            <span class="material-symbols-rounded" aria-hidden="true">search</span>
+            <input id="whitelistSearch" type="search" placeholder="Buscar domínio ou descrição..." oninput="handleRuleSearch('whitelist')" autocomplete="off" />
+            <button id="whitelistSearchClear" class="rule-search-clear" type="button" title="Limpar pesquisa" aria-label="Limpar pesquisa da whitelist" onclick="clearRuleSearch('whitelist', event)"><span class="material-symbols-rounded">close</span></button>
+          </label>
           <button class="btn btn-outline" onclick="openImportRules('whitelist')"><span class="material-symbols-rounded icon-inline">upload_file</span> Importar Lista</button>
           <button class="btn btn-primary" onclick="openAddRule('whitelist')">+ Adicionar</button>
         </div>
@@ -1103,7 +1148,12 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
           <div class="page-title"><span class="material-symbols-rounded icon-inline">block</span> Blacklist</div>
           <div class="page-sub">Sites sempre bloqueados</div>
         </div>
-        <div style="display:flex;gap:10px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <label class="rule-search" for="blacklistSearch">
+            <span class="material-symbols-rounded" aria-hidden="true">search</span>
+            <input id="blacklistSearch" type="search" placeholder="Buscar domínio ou descrição..." oninput="handleRuleSearch('blacklist')" autocomplete="off" />
+            <button id="blacklistSearchClear" class="rule-search-clear" type="button" title="Limpar pesquisa" aria-label="Limpar pesquisa da blacklist" onclick="clearRuleSearch('blacklist', event)"><span class="material-symbols-rounded">close</span></button>
+          </label>
           <button class="btn btn-outline" onclick="openImportRules('blacklist')"><span class="material-symbols-rounded icon-inline">upload_file</span> Importar Lista</button>
           <button class="btn btn-primary" onclick="openAddRule('blacklist')">+ Adicionar</button>
         </div>
@@ -2674,6 +2724,45 @@ function renderRules() {
   renderRuleTable('blacklist', document.getElementById('blacklistTable'));
 }
 
+function getRuleSearchTerm(type) {
+  const input = type === 'whitelist'
+    ? document.getElementById('whitelistSearch')
+    : document.getElementById('blacklistSearch');
+  return normalizeRuleSearchText(input?.value || '');
+}
+
+function normalizeRuleSearchText(value) {
+  return String(value).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function getFilteredRules(type) {
+  const list = rules.filter(r => normalizeRuleType(r.type) === type);
+  const term = getRuleSearchTerm(type);
+  if (!term) return list;
+
+  return list.filter(r => {
+    const haystack = normalizeRuleSearchText(`${r.pattern || ''} ${r.description || ''} ${r.applyToGroup || ''} ${r.applyToStudentId || ''}`);
+    return haystack.includes(term);
+  });
+}
+
+function handleRuleSearch(type) {
+  if (type === 'whitelist') whitelistPage = 1;
+  else blacklistPage = 1;
+  const input = document.getElementById(`${type}Search`);
+  document.getElementById(`${type}SearchClear`)?.classList.toggle('visible', Boolean(input?.value));
+  renderRuleTable(type, type === 'whitelist' ? document.getElementById('whitelistTable') : document.getElementById('blacklistTable'));
+}
+
+function clearRuleSearch(type, event) {
+  event?.preventDefault();
+  const input = document.getElementById(`${type}Search`);
+  if (!input) return;
+  input.value = '';
+  handleRuleSearch(type);
+  input.focus();
+}
+
 function normalizeRuleType(type) {
   if (typeof type === 'number') return type === 0 ? 'whitelist' : 'blacklist';
   const value = String(type || '').toLowerCase();
@@ -2687,10 +2776,14 @@ function normalizeRuleType(type) {
 function renderRuleTable(type, tbody) {
   if (!tbody) return;
   const pager = document.getElementById(type === 'whitelist' ? 'whitelistPagination' : 'blacklistPagination');
-  const list = rules.filter(r => normalizeRuleType(r.type) === type);
+  const list = getFilteredRules(type);
+  const searchTerm = getRuleSearchTerm(type);
   if (!list.length) {
     const label = type === 'whitelist' ? 'whitelist' : 'blacklist';
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">${type==='whitelist'?'<span class="material-symbols-rounded icon-inline">verified</span>':'<span class="material-symbols-rounded icon-inline">block</span>'}</div><h3>Nenhuma regra na ${label}</h3></div></td></tr>`;
+    const emptyMessage = searchTerm
+      ? `Nenhuma regra encontrada para "${searchTerm}" na ${label}`
+      : `Nenhuma regra na ${label}`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">${type==='whitelist'?'<span class="material-symbols-rounded icon-inline">verified</span>':'<span class="material-symbols-rounded icon-inline">block</span>'}</div><h3>${emptyMessage}</h3></div></td></tr>`;
     if (pager) pager.innerHTML = '';
     return;
   }
