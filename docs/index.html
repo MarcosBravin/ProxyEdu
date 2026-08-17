@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ProxyEdu organiza o acesso à internet em laboratórios e salas de aula com controle local, políticas flexíveis e acompanhamento em tempo real.">
+  <meta name="theme-color" content="#0a0c0f">
+  <meta name="robots" content="index,follow">
+  <meta property="og:title" content="ProxyEdu — a internet no ritmo da aula">
+  <meta property="og:description" content="Controle local da internet para ambientes educacionais. Sem nuvem obrigatória e com a instituição no comando.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://proxyedu.bravintech.com/">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="ProxyEdu">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="https://proxyedu.bravintech.com/">
+  <title>ProxyEdu — A internet no ritmo da aula</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ProxyEdu",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Windows",
+    "description": "Plataforma local de controle e acompanhamento do acesso à internet para ambientes educacionais.",
+    "url": "https://proxyedu.bravintech.com/"
+  }
+  </script>
+</head>
+<body class="home-page">
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+  <header class="site-header">
+    <div class="shell header-grid">
+      <a class="brand" href="./" aria-label="ProxyEdu — início">
+        <img src="assets/logo.svg" alt="" width="40" height="40">
+        <span class="brand-word">ProxyEdu</span>
+        <span class="brand-edition">Community</span>
+      </a>
+      <button class="menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">Menu</button>
+      <nav id="main-nav" class="main-nav" aria-label="Navegação principal">
+        <a href="#produto">Produto</a>
+        <a href="#operacao">Operação</a>
+        <a href="#privacidade">Privacidade</a>
+        <a href="#release">Versão atual</a>
+        <a class="nav-source" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">Repositório público <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <section class="home-hero" aria-labelledby="hero-title">
+      <div class="hero-grid-lines" aria-hidden="true"></div>
+      <div class="shell home-hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow light">Rede local / Windows / Distribuição oficial</p>
+          <h1 id="hero-title">A internet entra na aula.<br><em>O ruído não.</em></h1>
+          <p class="hero-intro">O ProxyEdu transforma a rede da escola em uma ferramenta pedagógica: o professor define o contexto, acompanha as estações e muda as regras sem interromper a aula.</p>
+          <div class="actions hero-actions">
+            <a class="primary-action" id="latest-download" href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Acompanhar releases</a>
+            <a class="secondary-action on-dark" href="#produto">Entender o sistema <span aria-hidden="true">↓</span></a>
+          </div>
+          <div class="hero-proof" aria-label="Características essenciais">
+            <span>Opera dentro da instituição</span>
+            <span>Sem nuvem obrigatória</span>
+            <span>Políticas em tempo real</span>
+          </div>
+        </div>
+
+        <div class="control-demo" role="region" aria-label="Demonstração de cenários do ProxyEdu">
+          <div class="demo-head">
+            <div><span class="live-mark" aria-hidden="true"></span><strong>DEMONSTRAÇÃO / REDE_LAB_01</strong></div>
+            <span id="demo-clock">OPERAÇÃO LOCAL</span>
+          </div>
+          <div class="scenario-switcher" role="tablist" aria-label="Cenário da aula">
+            <button id="scenario-tab-pesquisa" type="button" role="tab" aria-controls="scenario-panel" aria-selected="true" data-scenario="pesquisa">Pesquisa</button>
+            <button id="scenario-tab-avaliacao" type="button" role="tab" aria-controls="scenario-panel" aria-selected="false" data-scenario="avaliacao">Avaliação</button>
+            <button id="scenario-tab-livre" type="button" role="tab" aria-controls="scenario-panel" aria-selected="false" data-scenario="livre">Laboratório livre</button>
+          </div>
+          <div id="scenario-panel" role="tabpanel" aria-labelledby="scenario-tab-pesquisa" tabindex="0">
+            <div class="demo-context">
+              <span>CENÁRIO ATIVO</span>
+              <strong id="scenario-title">Pesquisa orientada</strong>
+              <p id="scenario-description">Fontes acadêmicas disponíveis; distrações suspensas durante a atividade.</p>
+            </div>
+            <div class="workstation-board" role="list" aria-label="Estado de doze estações" id="workstation-board">
+              <span class="workstation allowed" role="listitem">01</span><span class="workstation allowed" role="listitem">02</span><span class="workstation allowed" role="listitem">03</span><span class="workstation allowed" role="listitem">04</span>
+              <span class="workstation allowed" role="listitem">05</span><span class="workstation allowed" role="listitem">06</span><span class="workstation allowed" role="listitem">07</span><span class="workstation offline" role="listitem">08</span>
+              <span class="workstation allowed" role="listitem">09</span><span class="workstation blocked" role="listitem">10</span><span class="workstation allowed" role="listitem">11</span><span class="workstation offline" role="listitem">12</span>
+            </div>
+            <div class="demo-legend" aria-label="Legenda dos estados"><span class="allowed">Liberado</span><span class="blocked">Restrito</span><span class="offline">Offline</span></div>
+            <div class="policy-board">
+              <div><span>Fontes da atividade</span><strong id="policy-primary" class="policy-allow">LIBERADO</strong></div>
+              <div><span>Redes sociais</span><strong id="policy-social" class="policy-block">BLOQUEADO</strong></div>
+              <div><span>Streaming</span><strong id="policy-stream" class="policy-limit">SOB REGRA</strong></div>
+            </div>
+          </div>
+          <div class="demo-footer" aria-live="polite">
+            <span><strong id="station-online">10</strong> online</span>
+            <span><strong id="station-policy">3</strong> políticas ativas</span>
+            <span class="demo-status">Sincronizado agora</span>
+          </div>
+        </div>
+      </div>
+      <div class="system-rail" aria-label="Componentes do sistema">
+        <div class="shell system-rail-track">
+          <span>SERVER / ASP.NET CORE</span><span>CLIENT / WINDOWS SERVICE</span><span>PROXY / HTTP + HTTPS</span><span>PAINEL / TEMPO REAL</span><span>BASE / LITEDB LOCAL</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="manifesto-section" id="produto">
+      <div class="shell indexed-layout">
+        <div class="section-index"><span>01</span><strong>O CONTEXTO</strong></div>
+        <div class="manifesto-copy">
+          <p class="eyebrow">Tecnologia que acompanha a intenção pedagógica</p>
+          <h2>Nem internet irrestrita.<br>Nem bloqueio permanente.</h2>
+          <div class="manifesto-columns">
+            <p>Uma pesquisa, uma avaliação e um momento livre pedem redes diferentes. O ProxyEdu permite mudar o acesso conforme a atividade — para todos, para um grupo ou para uma única estação.</p>
+            <p>O professor decide; o ProxyEdu aplica a política, mostra o resultado e devolve tempo para conduzir a aula.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="moments-section" aria-labelledby="moments-title">
+      <div class="shell">
+        <div class="section-heading split-heading">
+          <div><p class="eyebrow">Antes, durante e depois</p><h2 id="moments-title">Um único controle.<br>Três ritmos de aula.</h2></div>
+          <p>O produto foi desenhado para a rotina real de laboratórios: preparar com antecedência, intervir sem atrito e entender o que aconteceu.</p>
+        </div>
+        <div class="moment-sequence">
+          <article>
+            <span class="moment-number">ANTES / 01</span>
+            <div class="moment-rule" aria-hidden="true"></div>
+            <h3>Prepare o ambiente</h3>
+            <p>Organize computadores em grupos, combine listas de bloqueio e liberação e deixe presets prontos para a próxima atividade.</p>
+            <ul><li>Grupos por turma ou laboratório</li><li>Whitelist e blacklist</li><li>Presets reutilizáveis</li></ul>
+          </article>
+          <article>
+            <span class="moment-number">DURANTE / 02</span>
+            <div class="moment-rule active" aria-hidden="true"></div>
+            <h3>Aja no momento certo</h3>
+            <p>Veja quem está online, altere uma regra e conceda acesso temporário sem sair da visão da sala.</p>
+            <ul><li>Presença em tempo real</li><li>Controle individual ou coletivo</li><li>Acesso temporário</li></ul>
+          </article>
+          <article>
+            <span class="moment-number">DEPOIS / 03</span>
+            <div class="moment-rule" aria-hidden="true"></div>
+            <h3>Entenda a operação</h3>
+            <p>Consulte atividades, diagnósticos e estados de atualização para manter o ambiente previsível.</p>
+            <ul><li>Logs e filtros</li><li>Saúde do servidor</li><li>Atualizações autorizadas</li></ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture-section" id="operacao" aria-labelledby="architecture-title">
+      <div class="shell indexed-layout">
+        <div class="section-index light"><span>02</span><strong>ARQUITETURA</strong></div>
+        <div>
+          <div class="section-heading split-heading on-dark-heading">
+            <div><p class="eyebrow light">Local por escolha, não por limitação</p><h2 id="architecture-title">A escola permanece<br>no centro da rede.</h2></div>
+            <p>Server, Client e Dashboard trabalham na infraestrutura administrada pela instituição. O funcionamento principal não depende de uma conta externa.</p>
+          </div>
+
+          <div class="architecture-map" role="img" aria-label="Estações Windows conectadas ao ProxyEdu Server, administrado pelo Dashboard local">
+            <div class="map-node station-node">
+              <span class="node-label">ESTAÇÕES</span>
+              <div class="station-cluster" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <strong>ProxyEdu Client</strong>
+              <small>Serviço Windows</small>
+            </div>
+            <div class="map-connection"><span>HTTP / HTTPS</span></div>
+            <div class="map-node core-node">
+              <span class="core-pulse" aria-hidden="true"></span>
+              <span class="node-label">NÚCLEO LOCAL</span>
+              <strong>ProxyEdu Server</strong>
+              <small>Proxy · API · SignalR · LiteDB</small>
+            </div>
+            <div class="map-connection reverse"><span>REDE LOCAL</span></div>
+            <div class="map-node admin-node">
+              <span class="node-label">CONTROLE</span>
+              <div class="admin-screen" aria-hidden="true"><i></i><i></i><i></i></div>
+              <strong>Dashboard Web</strong>
+              <small>Professor ou equipe de TI</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="capability-section" id="recursos" aria-labelledby="capability-title">
+      <div class="shell indexed-layout">
+        <div class="section-index"><span>03</span><strong>CAPACIDADES</strong></div>
+        <div>
+          <div class="section-heading"><p class="eyebrow">Controle, presença e continuidade</p><h2 id="capability-title">Controle visível.<br>Operação compreensível.</h2></div>
+          <div class="capability-ledger">
+            <article><span>01</span><h3>Políticas com alcance preciso</h3><p>Aplique regras globalmente, por grupo ou por computador. Ative, desative e combine domínios e padrões conforme o contexto.</p><strong>REGRAS</strong></article>
+            <article><span>02</span><h3>Sala acompanhada ao vivo</h3><p>Veja estações conectadas, estado de acesso e atividade recente. Intervenha no ponto necessário sem alterar toda a rede.</p><strong>SINAL</strong></article>
+            <article><span>03</span><h3>Continuidade de operação</h3><p>Descoberta automática, health checks, diagnóstico e recuperação ajudam a manter o laboratório disponível.</p><strong>SAÚDE</strong></article>
+            <article><span>04</span><h3>Atualização sob autorização</h3><p>Pacotes assinados, distribuição local, progresso por estação e rollback mantêm a evolução do Client sob controle administrativo.</p><strong>UPDATE</strong></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy-section" id="privacidade" aria-labelledby="privacy-title">
+      <div class="shell privacy-layout">
+        <div class="privacy-statement">
+          <p class="eyebrow">Privacidade começa pela arquitetura</p>
+          <h2 id="privacy-title">Os dados ficam onde a aula acontece.</h2>
+        </div>
+        <div class="privacy-detail">
+          <p>Na configuração local padrão, o banco, as regras e os registros permanecem na infraestrutura escolhida pela instituição. O mantenedor do projeto não recebe automaticamente dados dos estudantes.</p>
+          <div class="privacy-facts">
+            <div><strong>SEM</strong><span>nuvem obrigatória</span></div>
+            <div><strong>SEM</strong><span>analytics neste site</span></div>
+            <div><strong>COM</strong><span>documentação de responsabilidades</span></div>
+          </div>
+          <div class="inline-actions"><a class="primary-action dark-action" href="privacidade.html">Política de Privacidade</a><a class="text-action" href="lgpd.html">Central LGPD <span aria-hidden="true">→</span></a></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="release-section" id="release" aria-labelledby="release-title">
+      <div class="shell release-layout">
+        <div class="release-current">
+          <p class="eyebrow light">Distribuição pública</p>
+          <span class="release-kicker">PRÓXIMA RELEASE</span>
+          <h2 id="release-title"><span id="hero-version">Em preparação</span></h2>
+          <p id="release-summary">O novo catálogo público de instaladores será iniciado nesta página.</p>
+          <div class="actions"><a class="primary-action signal-action" id="release-link" href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Acompanhar releases <span aria-hidden="true">↗</span></a></div>
+          <p class="api-note" id="release-source">Nenhuma release foi publicada neste novo repositório.</p>
+        </div>
+        <div class="release-evidence">
+          <div class="evidence-head"><span>POLÍTICA DE PUBLICAÇÃO</span><strong id="release-date">A DEFINIR</strong></div>
+          <div class="evidence-row"><span>CANAL</span><strong>Estável</strong></div>
+          <div class="evidence-row"><span>VALIDAÇÃO</span><strong id="release-tests">Antes da publicação</strong></div>
+          <div class="evidence-row"><span>COMPONENTES</span><strong>Instaladores compilados</strong></div>
+          <div class="evidence-row"><span>INTEGRIDADE</span><strong>Assinaturas e SHA-256</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="open-section" aria-labelledby="open-title">
+      <div class="shell open-layout">
+        <span class="open-mark" aria-hidden="true">{ }</span>
+        <div><p class="eyebrow">Community Edition</p><h2 id="open-title">Documentação pública. Operação transparente.</h2><p>Site, orientações de uso, políticas e releases oficiais ficam reunidos neste repositório público.</p></div>
+        <a class="source-link" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer"><span>Explorar o repositório</span><strong aria-hidden="true">↗</strong></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-main">
+      <div class="footer-brand"><strong>ProxyEdu</strong><p>A internet no ritmo da aula.</p><span id="footer-version">Releases públicas: em preparação</span></div>
+      <div><h2>Produto</h2><a href="#produto">Visão geral</a><a href="#operacao">Arquitetura</a><a href="#recursos">Capacidades</a><a href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Downloads</a></div>
+      <div><h2>Projeto</h2><a href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/MarcosBravin/ProxyEdu/blob/main/README.md" target="_blank" rel="noopener noreferrer">Documentação</a><a href="https://github.com/MarcosBravin/ProxyEdu/security" target="_blank" rel="noopener noreferrer">Segurança</a></div>
+      <div><h2>Legal</h2><a href="privacidade.html">Privacidade</a><a href="lgpd.html">Central LGPD</a><a href="termos.html">Termos de Uso</a><a href="cookies.html">Cookies</a></div>
+    </div>
+    <div class="shell footer-bottom"><span>© 2026 Marcos Bravin · ProxyEdu Community Edition</span><span>Uso autorizado, responsável e transparente.</span></div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
