@@ -24,8 +24,11 @@
     "name": "ProxyEdu",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "Windows",
+    "softwareVersion": "2026.2.0.0",
     "description": "Plataforma local de controle e acompanhamento do acesso à internet para ambientes educacionais.",
-    "url": "https://proxyedu.bravintech.com/"
+    "url": "https://proxyedu.bravintech.com/",
+    "codeRepository": "https://github.com/MarcosBravin/ProxyEdu",
+    "downloadUrl": "https://github.com/MarcosBravin/ProxyEdu/releases"
   }
   </script>
 </head>
@@ -43,9 +46,10 @@
       <nav id="main-nav" class="main-nav" aria-label="Navegação principal">
         <a href="#produto">Produto</a>
         <a href="#operacao">Operação</a>
+        <a href="#planos">Planos</a>
         <a href="#privacidade">Privacidade</a>
         <a href="#release">Versão atual</a>
-        <a class="nav-source" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">Repositório público <span aria-hidden="true">↗</span></a>
+        <a class="nav-source" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">Código-fonte <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
   </header>
@@ -55,15 +59,15 @@
       <div class="hero-grid-lines" aria-hidden="true"></div>
       <div class="shell home-hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow light">Rede local / Windows / Distribuição oficial</p>
+          <p class="eyebrow light">Rede local / Windows / Código-fonte disponível</p>
           <h1 id="hero-title">A internet entra na aula.<br><em>O ruído não.</em></h1>
           <p class="hero-intro">O ProxyEdu transforma a rede da escola em uma ferramenta pedagógica: o professor define o contexto, acompanha as estações e muda as regras sem interromper a aula.</p>
           <div class="actions hero-actions">
-            <a class="primary-action" id="latest-download" href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Acompanhar releases</a>
+            <a class="primary-action" id="latest-download" href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Baixar versão estável</a>
             <a class="secondary-action on-dark" href="#produto">Entender o sistema <span aria-hidden="true">↓</span></a>
           </div>
           <div class="hero-proof" aria-label="Características essenciais">
-            <span>Opera dentro da instituição</span>
+          <span>Free para até 5 dispositivos</span>
             <span>Sem nuvem obrigatória</span>
             <span>Políticas em tempo real</span>
           </div>
@@ -106,7 +110,7 @@
       </div>
       <div class="system-rail" aria-label="Componentes do sistema">
         <div class="shell system-rail-track">
-          <span>SERVER / ASP.NET CORE</span><span>CLIENT / WINDOWS SERVICE</span><span>PROXY / HTTP + HTTPS</span><span>PAINEL / TEMPO REAL</span><span>BASE / LITEDB LOCAL</span>
+          <span>SERVER / ASP.NET CORE</span><span>CLIENT / WINDOWS SERVICE</span><span>PROXY / HTTP + HTTPS</span><span>PAINEL / TEMPO REAL</span><span>LICENÇA / CACHE ASSINADO</span>
         </div>
       </div>
     </section>
@@ -163,7 +167,7 @@
         <div>
           <div class="section-heading split-heading on-dark-heading">
             <div><p class="eyebrow light">Local por escolha, não por limitação</p><h2 id="architecture-title">A escola permanece<br>no centro da rede.</h2></div>
-            <p>Server, Client e Dashboard trabalham na infraestrutura administrada pela instituição. O funcionamento principal não depende de uma conta externa.</p>
+            <p>Server, Client, Dashboard e LiteDB trabalham na infraestrutura administrada pela instituição. Licenças comerciais usam documentos assinados em cache: a indisponibilidade do serviço externo não interrompe proxy, heartbeat ou inicialização.</p>
           </div>
 
           <div class="architecture-map" role="img" aria-label="Estações Windows conectadas ao ProxyEdu Server, administrado pelo Dashboard local">
@@ -202,7 +206,54 @@
             <article><span>02</span><h3>Sala acompanhada ao vivo</h3><p>Veja estações conectadas, estado de acesso e atividade recente. Intervenha no ponto necessário sem alterar toda a rede.</p><strong>SINAL</strong></article>
             <article><span>03</span><h3>Continuidade de operação</h3><p>Descoberta automática, health checks, diagnóstico e recuperação ajudam a manter o laboratório disponível.</p><strong>SAÚDE</strong></article>
             <article><span>04</span><h3>Atualização sob autorização</h3><p>Pacotes assinados, distribuição local, progresso por estação e rollback mantêm a evolução do Client sob controle administrativo.</p><strong>UPDATE</strong></article>
+            <article><span>05</span><h3>Licenciamento sem dependência contínua</h3><p>Seats são vinculados à instalação do Client, licenças ficam assinadas em cache local e a chave privada permanece fora do software distribuído.</p><strong>OFFLINE</strong></article>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pricing-section" id="planos" aria-labelledby="pricing-title">
+      <div class="shell">
+        <div class="pricing-heading">
+          <div><p class="eyebrow light">Planos por laboratório</p><h2 id="pricing-title">Comece livre.<br>Escale quando precisar.</h2></div>
+          <p>Todos os planos preservam a operação local do ProxyEdu. Dispositivos offline continuam associados ao seu seat até a liberação administrativa.</p>
+        </div>
+        <div class="pricing-grid">
+          <article class="price-card free-plan">
+            <div class="price-card-head"><span>FREE</span><strong>R$ 0</strong><small>sem prazo</small></div>
+            <h3>Free</h3><p>Para conhecer o ProxyEdu ou operar um ambiente pequeno.</p>
+            <ul><li>Até 5 dispositivos</li><li>Licença intrínseca</li><li>Operação local e offline</li></ul>
+          </article>
+          <article class="price-card featured">
+            <div class="plan-flag">ENTRADA</div>
+            <div class="price-card-head"><span>LAB 15</span><strong>R$ 69</strong><small>/mês</small></div>
+            <h3>Lab 15</h3><p>Para laboratórios compactos e salas dedicadas.</p>
+            <ul><li>Até 15 dispositivos</li><li>R$ 690 por ano</li><li>Licença assinada com cache local</li></ul>
+          </article>
+          <article class="price-card">
+            <div class="price-card-head"><span>ESCOLA 40</span><strong>R$ 149</strong><small>/mês</small></div>
+            <h3>Escola 40</h3><p>Uma turma completa com margem para estações de apoio.</p>
+            <ul><li>Até 40 dispositivos</li><li>R$ 1.490 por ano</li><li>Gestão centralizada de seats</li></ul>
+          </article>
+          <article class="price-card">
+            <div class="price-card-head"><span>ESCOLA 80</span><strong>R$ 249</strong><small>/mês</small></div>
+            <h3>Escola 80</h3><p>Para dois laboratórios ou uma operação ampliada.</p>
+            <ul><li>Até 80 dispositivos</li><li>R$ 2.490 por ano</li><li>Validação resiliente em segundo plano</li></ul>
+          </article>
+          <article class="price-card">
+            <div class="price-card-head"><span>ESCOLA 150</span><strong>R$ 399</strong><small>/mês</small></div>
+            <h3>Escola 150</h3><p>Para ambientes maiores com administração unificada.</p>
+            <ul><li>Até 150 dispositivos</li><li>R$ 3.990 por ano</li><li>Auditoria de concessão e liberação</li></ul>
+          </article>
+          <article class="price-card enterprise-plan">
+            <div class="price-card-head"><span>ENTERPRISE</span><strong>Sob consulta</strong><small>limite configurável</small></div>
+            <h3>Enterprise</h3><p>Dimensionamento e condições para necessidades específicas.</p>
+            <ul><li>Quantidade configurável</li><li>Condições comerciais dedicadas</li><li>Preparação para entitlements adicionais</li></ul>
+          </article>
+        </div>
+        <div class="pricing-note">
+          <p><strong>Preços comerciais de referência.</strong> A contratação e o Trial ainda são assistidos; checkout e cobrança automática não fazem parte desta versão.</p>
+          <a class="primary-action" href="https://github.com/MarcosBravin/ProxyEdu/discussions" target="_blank" rel="noopener noreferrer">Falar sobre licenciamento <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>
@@ -228,19 +279,19 @@
     <section class="release-section" id="release" aria-labelledby="release-title">
       <div class="shell release-layout">
         <div class="release-current">
-          <p class="eyebrow light">Distribuição pública</p>
-          <span class="release-kicker">PRÓXIMA RELEASE</span>
-          <h2 id="release-title"><span id="hero-version">Em preparação</span></h2>
-          <p id="release-summary">O novo catálogo público de instaladores será iniciado nesta página.</p>
+          <p class="eyebrow light">Release estável</p>
+          <span class="release-kicker">VERSÃO ATUAL</span>
+          <h2 id="release-title"><span id="hero-version">v2026.2.0.0</span></h2>
+          <p id="release-summary">Licenciamento comercial com seats por instalação, cache assinado, operação offline e serviço privado independente.</p>
           <div class="actions"><a class="primary-action signal-action" id="release-link" href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Acompanhar releases <span aria-hidden="true">↗</span></a></div>
-          <p class="api-note" id="release-source">Nenhuma release foi publicada neste novo repositório.</p>
+          <p class="api-note" id="release-source">v2026.2.0.0 em desenvolvimento · o download estável é atualizado automaticamente.</p>
         </div>
         <div class="release-evidence">
-          <div class="evidence-head"><span>POLÍTICA DE PUBLICAÇÃO</span><strong id="release-date">A DEFINIR</strong></div>
-          <div class="evidence-row"><span>CANAL</span><strong>Estável</strong></div>
-          <div class="evidence-row"><span>VALIDAÇÃO</span><strong id="release-tests">Antes da publicação</strong></div>
-          <div class="evidence-row"><span>COMPONENTES</span><strong>Instaladores compilados</strong></div>
-          <div class="evidence-row"><span>INTEGRIDADE</span><strong>Assinaturas e SHA-256</strong></div>
+          <div class="evidence-head"><span>EVIDÊNCIAS DO PROJETO</span><strong id="release-date">17 AGO 2026</strong></div>
+          <div class="evidence-row"><span>CANAL</span><strong>Em desenvolvimento</strong></div>
+          <div class="evidence-row"><span>VALIDAÇÃO</span><strong id="release-tests">183 testes aprovados</strong></div>
+          <div class="evidence-row"><span>COMPONENTES</span><strong>Server + Client + Installer</strong></div>
+          <div class="evidence-row"><span>DISTRIBUIÇÃO</span><strong>Pacotes assinados</strong></div>
         </div>
       </div>
     </section>
@@ -248,7 +299,7 @@
     <section class="open-section" aria-labelledby="open-title">
       <div class="shell open-layout">
         <span class="open-mark" aria-hidden="true">{ }</span>
-        <div><p class="eyebrow">Community Edition</p><h2 id="open-title">Documentação pública. Operação transparente.</h2><p>Site, orientações de uso, políticas e releases oficiais ficam reunidos neste repositório público.</p></div>
+        <div><p class="eyebrow">Community Edition</p><h2 id="open-title">Código disponível. Operação auditável.</h2><p>Arquitetura, decisões técnicas, releases e histórico de desenvolvimento estão disponíveis publicamente.</p></div>
         <a class="source-link" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer"><span>Explorar o repositório</span><strong aria-hidden="true">↗</strong></a>
       </div>
     </section>
@@ -256,8 +307,8 @@
 
   <footer class="site-footer">
     <div class="shell footer-main">
-      <div class="footer-brand"><strong>ProxyEdu</strong><p>A internet no ritmo da aula.</p><span id="footer-version">Releases públicas: em preparação</span></div>
-      <div><h2>Produto</h2><a href="#produto">Visão geral</a><a href="#operacao">Arquitetura</a><a href="#recursos">Capacidades</a><a href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Downloads</a></div>
+      <div class="footer-brand"><strong>ProxyEdu</strong><p>A internet no ritmo da aula.</p><span id="footer-version">Projeto atual: v2026.2.0.0</span></div>
+      <div><h2>Produto</h2><a href="#produto">Visão geral</a><a href="#operacao">Arquitetura</a><a href="#planos">Planos</a><a href="#recursos">Capacidades</a><a href="https://github.com/MarcosBravin/ProxyEdu/releases" target="_blank" rel="noopener noreferrer">Downloads</a></div>
       <div><h2>Projeto</h2><a href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/MarcosBravin/ProxyEdu/blob/main/README.md" target="_blank" rel="noopener noreferrer">Documentação</a><a href="https://github.com/MarcosBravin/ProxyEdu/security" target="_blank" rel="noopener noreferrer">Segurança</a></div>
       <div><h2>Legal</h2><a href="privacidade.html">Privacidade</a><a href="lgpd.html">Central LGPD</a><a href="termos.html">Termos de Uso</a><a href="cookies.html">Cookies</a></div>
     </div>

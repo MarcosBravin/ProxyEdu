@@ -166,22 +166,6 @@
     return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
       .format(new Date(iso)).replace('.', '').toUpperCase();
   };
-  const stripMarkdown = (value = '') => value
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/[*_`~]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const extractSummary = (body = '') => {
-    const lines = body.split(/\r?\n/).map((line) => line.trim());
-    const start = lines.findIndex((line) => /^##\s+Visão geral/i.test(line));
-    const pool = start >= 0 ? lines.slice(start + 1) : lines;
-    const summary = pool.find((line) => line && !line.startsWith('#') && !line.startsWith('-') && !line.startsWith('```'));
-    return stripMarkdown(summary) || 'Consulte as notas completas desta versão no GitHub.';
-  };
-  const extractTests = (body = '') => body.match(/(\d+)\s+testes (?:automatizados )?aprovados/i)?.[1] || '';
-
   fetch(API, { headers: { Accept: 'application/vnd.github+json' } })
     .then((response) => {
       if (!response.ok) throw new Error(`GitHub API ${response.status}`);
@@ -190,13 +174,7 @@
     .then((release) => {
       if (!release || release.draft || release.prerelease) return;
       const version = cleanVersion(release.tag_name || release.name || '');
-      const summary = extractSummary(release.body || '');
-      const tests = extractTests(release.body || '');
-      setText('hero-version', version);
-      setText('release-summary', summary);
-      setText('footer-version', `Release atual: ${version}`);
-      setText('release-date', formatDate(release.published_at || release.created_at));
-      if (tests) setText('release-tests', `${tests} testes aprovados`);
+      const publishedAt = formatDate(release.published_at || release.created_at);
       setHref('release-link', release.html_url);
       const setup = (release.assets || []).find((asset) => /ProxyEdu-Setup-.*\.exe$/i.test(asset.name));
       const download = byId('latest-download');
@@ -207,7 +185,7 @@
         download.textContent = downloadText;
         download.setAttribute('aria-label', `${downloadText} — abre em nova guia`);
       }
-      setText('release-source', 'Fonte: GitHub Releases · dados atualizados automaticamente.');
+      setText('release-source', `Projeto atual: v2026.2.0.0 · download estável: ${version}${publishedAt ? ` · ${publishedAt}` : ''}.`);
     })
-    .catch(() => setText('release-source', 'Nenhuma release pública está disponível no momento.'));
+    .catch(() => setText('release-source', 'Fonte: GitHub Releases · exibindo a cópia local da versão estável.'));
 })();
