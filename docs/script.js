@@ -185,7 +185,7 @@
         download.textContent = downloadText;
         download.setAttribute('aria-label', `${downloadText} — abre em nova guia`);
       }
-      setText('release-source', `Projeto atual: v2026.2.0.0 · download estável: ${version}${publishedAt ? ` · ${publishedAt}` : ''}.`);
+      setText('release-source', `Release atual: ${version}${publishedAt ? ` · publicada em ${publishedAt}` : ''}.`);
     })
     .catch(() => setText('release-source', 'Fonte: GitHub Releases · exibindo a cópia local da versão estável.'));
 })();
