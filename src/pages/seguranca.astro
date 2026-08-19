@@ -1,0 +1,20 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+<BaseLayout title="Segurança — ProxyEdu" description="Arquitetura de segurança, atualização autenticada, licenciamento assinado e práticas de proteção do ProxyEdu.">
+  <header class="page-hero"><div class="shell"><span class="eyebrow">Segurança por camadas</span><h1>Controles verificáveis, limites explícitos.</h1><p>Explicamos o que o produto protege, como protege e quais responsabilidades continuam com a instituição.</p></div></header>
+  <section class="section"><div class="shell"><div class="grid-3">
+    <article class="card"><div class="feature-icon">↗</div><h3>Transporte protegido</h3><p>A comunicação externa com o licenciamento usa HTTPS. O endpoint público não expõe a chave privada de assinatura.</p></article>
+    <article class="card"><div class="feature-icon">✓</div><h3>Assinatura assimétrica</h3><p>Licenças usam RSA-PSS/SHA-256 e KeyId para verificação e rotação. Apenas chaves públicas chegam ao produto.</p></article>
+    <article class="card"><div class="feature-icon">#</div><h3>Integridade de atualização</h3><p>Manifestos, hashes SHA-256 e assinaturas ajudam a detectar pacotes alterados antes da atualização.</p></article>
+  </div></div></section>
+  <section class="section section-dark"><div class="shell content-grid"><aside class="toc"><strong>Segurança</strong><a href="#dados">Dados locais</a><a href="#acesso">Acesso administrativo</a><a href="#certificados">Certificados</a><a href="#licencas">Licenças</a><a href="#atualizacoes">Atualizações</a><a href="#relato">Relatar falha</a></aside><article class="prose">
+    <h2 id="dados">Dados locais e minimização</h2><p>O Server mantém localmente as informações operacionais necessárias, incluindo identidade dos Clients, estado de vagas e cache de licença. O serviço comercial recebe somente os dados necessários para ativar, validar e auditar uma licença.</p>
+    <h2 id="acesso">Acesso administrativo</h2><p>A instalação atual orienta a criação da credencial administrativa inicial. Senhas não devem ser publicadas, compartilhadas em canais inseguros ou inseridas em páginas externas. A instituição deve restringir o painel à rede e aos operadores que realmente precisam dele.</p>
+    <h2 id="certificados">Autoridade certificadora local</h2><p>Recursos de proxy HTTPS podem exigir uma autoridade certificadora local. Sua chave privada deve permanecer protegida no Server, e o certificado raiz só deve ser instalado em equipamentos autorizados e administrados pela instituição. A remoção do produto também deve prever a retirada dessa confiança dos endpoints.</p>
+    <h2 id="licencas">Separação do licenciamento</h2><p>O serviço ProxyEdu.Licensing é separado do Server entregue às escolas. A chave privada de assinatura existe apenas nesse ambiente privado ou em gestão segura de chaves. O software distribuído contém somente chaves públicas para conferir documentos.</p>
+    <h2 id="atualizacoes">Atualização e procedência</h2><p>Baixe releases somente deste site ou do repositório oficial. Compare os hashes publicados quando disponíveis e preserve as assinaturas que acompanham os pacotes. O código do serviço privado de licenciamento não faz parte do pacote escolar.</p>
+    <h2 id="relato">Relatar uma vulnerabilidade</h2><p>Não publique detalhes exploráveis em uma issue aberta. Siga o processo descrito na <a href="https://github.com/MarcosBravin/ProxyEdu/security/policy">política de segurança do repositório</a> para um relato responsável.</p>
+    <div class="notice"><strong>Transparência:</strong> nenhum software elimina todos os riscos. Segurança também depende do sistema operacional atualizado, segmentação da rede, backups, controle de acesso e resposta a incidentes da instituição.</div>
+  </article></div></section>
+</BaseLayout>

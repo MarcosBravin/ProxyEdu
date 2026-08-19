@@ -1,0 +1,15 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+const plans = [
+  {name:"Free", devices:"5", monthly:"Grátis", annual:"Uso contínuo", featured:false},
+  {name:"Lab 15", devices:"15", monthly:"R$ 69/mês", annual:"R$ 690/ano", featured:true},
+  {name:"Escola 40", devices:"40", monthly:"R$ 149/mês", annual:"R$ 1.490/ano", featured:false},
+  {name:"Escola 80", devices:"80", monthly:"R$ 249/mês", annual:"R$ 2.490/ano", featured:false},
+  {name:"Escola 150", devices:"150", monthly:"R$ 399/mês", annual:"R$ 3.990/ano", featured:false},
+  {name:"Enterprise", devices:"Configurável", monthly:"Sob consulta", annual:"Projeto dimensionado", featured:false},
+];
+---
+<BaseLayout title="Planos e preços — ProxyEdu" description="Planos ProxyEdu para laboratórios e escolas, de 5 a 150 dispositivos ou capacidade personalizada.">
+  <header class="page-hero"><div class="shell"><span class="eyebrow">Capacidade que acompanha a escola</span><h1>Planos simples, por dispositivos.</h1><p>Comece no Free e amplie sem trocar a instalação. Os valores abaixo são metadados comerciais e a contratação é confirmada pelo atendimento.</p></div></header>
+  <section class="section"><div class="shell"><div class="price-grid">{plans.map(plan => <article class:list={["price-card", {featured:plan.featured}]}>{plan.featured && <span class="badge">Para laboratórios</span>}<h3>{plan.name}</h3><div class="price">{plan.monthly}</div><span class="annual">{plan.annual}</span><ul><li>Até {plan.devices} dispositivos</li><li>Controle e persistência locais</li><li>Licença assinada e cache offline</li><li>Atualizações autenticadas</li></ul><a class:list={["button", {"button-secondary":!plan.featured}]} href={plan.name === "Free" ? "/releases/" : "/trial/"}>{plan.name === "Free" ? "Baixar ProxyEdu" : "Falar sobre este plano"}</a></article>)}</div><p class="legal-meta" style="margin-top:24px">Valores em reais, sujeitos à confirmação comercial. Impostos, condições de pagamento, suporte e escopo são definidos na proposta aplicável.</p></div></section>
+</BaseLayout>

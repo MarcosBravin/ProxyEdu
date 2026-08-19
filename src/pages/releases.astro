@@ -1,0 +1,8 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ReleaseExplorer from "../components/ReleaseExplorer";
+---
+<BaseLayout title="Releases e downloads — ProxyEdu" description="Versões oficiais, notas de atualização e downloads do ProxyEdu publicados no GitHub.">
+  <header class="page-hero"><div class="shell"><span class="eyebrow">Origem oficial</span><h1>Releases e downloads</h1><p>Esta página consulta diretamente as releases do repositório oficial. Verifique notas, arquivos e hashes publicados antes de instalar.</p></div></header>
+  <section class="section"><div class="shell"><div class="notice"><strong>Instalação segura:</strong> baixe somente artefatos associados a uma release oficial. O código-fonte público não inclui o serviço privado de licenciamento nem chaves de assinatura.</div><ReleaseExplorer client:load /></div></section>
+</BaseLayout>
