@@ -6,5 +6,5 @@ export default defineConfig({
   site: "https://proxyedu.bravintech.com",
   output: "static",
   trailingSlash: "always",
-  integrations: [react(), sitemap()],
+  integrations: [react(), sitemap({ customPages: ["https://proxyedu.bravintech.com/"] })],
 });
