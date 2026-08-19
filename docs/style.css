@@ -470,6 +470,13 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
 .release-download-grid a:hover { background: #1b252a; }
 .release-download-grid strong { color: var(--signal); font-size: 17px; }
 .release-download-grid span { margin-top: 7px; color: #929ca1; font: 600 10px/1.5 var(--mono); }
+.release-integrity-table { max-width: 100%; overflow-x: auto; margin: 28px 0 38px; }
+.release-integrity-table table { margin: 0; min-width: 760px; }
+.release-notes { margin-top: 30px; }
+.release-notes h2, .release-notes h3, .release-notes h4 { margin-top: 36px; }
+.release-notes h2:first-child, .release-notes h3:first-child { margin-top: 0; }
+.release-notes blockquote { margin: 24px 0; padding: 14px 18px; border-left: 4px solid var(--signal); background: var(--paper-deep); }
+.release-notes .release-note-meta { color: var(--muted); font: 600 11px/1.7 var(--mono); }
 @media (max-width: 760px) {
   .docs-page .footer-main { grid-template-columns: 1fr 1fr; }
   .docs-page .footer-brand { grid-column: 1 / -1; }

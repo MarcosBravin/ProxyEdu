@@ -211,6 +211,39 @@
     return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
       .format(new Date(iso)).replace('.', '').toUpperCase();
   };
+  const cleanMarkdown = (value = '') => value
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[`*_>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const releaseOverview = (body = '') => {
+    const lines = String(body).split(/\r?\n/);
+    const overviewIndex = lines.findIndex((line) => /^##\s+(visão geral|resumo)\s*$/i.test(line.trim()));
+    if (overviewIndex < 0) return '';
+    for (const line of lines.slice(overviewIndex + 1)) {
+      const trimmed = line.trim();
+      if (/^##\s+/.test(trimmed)) break;
+      if (!trimmed || /^[-*]\s+/.test(trimmed)) continue;
+      const paragraph = cleanMarkdown(trimmed);
+      if (paragraph.length >= 60) return paragraph;
+    }
+    return '';
+  };
+  const releaseTestCount = (body = '') => {
+    const match = String(body).match(/\b(\d+)\s+testes(?:\s+automatizados)?\s+aprovados\b/i);
+    return match ? `${match[1]} testes aprovados` : '';
+  };
+  const updateStructuredData = (version, downloadUrl) => {
+    const metadata = byId('software-metadata');
+    if (!metadata) return;
+    try {
+      const data = JSON.parse(metadata.textContent);
+      data.softwareVersion = version.replace(/^v/i, '');
+      if (isTrustedGitHubUrl(downloadUrl)) data.downloadUrl = downloadUrl;
+      metadata.textContent = JSON.stringify(data);
+    } catch { /* mantém o fallback estático válido */ }
+  };
   fetch(API, { headers: { Accept: 'application/vnd.github+json' } })
     .then((response) => {
       if (!response.ok) throw new Error(`GitHub API ${response.status}`);
@@ -219,18 +252,27 @@
     .then((release) => {
       if (!release || release.draft || release.prerelease) return;
       const version = cleanVersion(release.tag_name || release.name || '');
+      if (!/^v\d{4}\.\d+\.\d+\.\d+$/.test(version)) return;
       const publishedAt = formatDate(release.published_at || release.created_at);
       setHref('release-link', release.html_url);
       const setup = (release.assets || []).find((asset) => /ProxyEdu-Setup-.*\.exe$/i.test(asset.name));
+      const targetUrl = setup?.browser_download_url || release.html_url;
       const download = byId('latest-download');
       if (download) {
-        const targetUrl = setup?.browser_download_url || release.html_url;
         if (isTrustedGitHubUrl(targetUrl)) download.href = targetUrl;
         const downloadText = setup ? `Baixar ${version}` : 'Abrir versão estável';
         download.textContent = downloadText;
         download.setAttribute('aria-label', `${downloadText} — abre em nova guia`);
       }
+      setText('hero-version', version);
+      setText('footer-version', `Release atual: ${version}`);
+      if (publishedAt) setText('release-date', publishedAt);
+      const summary = releaseOverview(release.body);
+      if (summary) setText('release-summary', summary);
+      const tests = releaseTestCount(release.body);
+      if (tests) setText('release-tests', tests);
       setText('release-source', `Release atual: ${version}${publishedAt ? ` · publicada em ${publishedAt}` : ''}.`);
+      updateStructuredData(version, targetUrl);
     })
     .catch(() => setText('release-source', 'Fonte: GitHub Releases · exibindo a cópia local da versão estável.'));
 })();

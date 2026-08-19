@@ -9,8 +9,8 @@ eyebrow: DISTRIBUIÇÃO OFICIAL / CANAL STABLE
 intro: Encontre o instalador, os pacotes de atualização e as evidências de integridade em uma única página.
 meta_title: Versão atual
 meta:
-  - v2026.2.0.2
-  - Publicada em 18 de agosto de 2026
+  - v2026.2.1.0
+  - Publicada em 19 de agosto de 2026
   - Canal Stable
 toc:
   - id: versao-atual
@@ -19,29 +19,27 @@ toc:
     label: 2. Downloads
   - id: integridade
     label: 3. Integridade
-  - id: melhorias
-    label: 4. Melhorias
-  - id: compatibilidade
-    label: 5. Compatibilidade
+  - id: notas
+    label: 4. Notas completas
   - id: historico
-    label: 6. Histórico
+    label: 5. Histórico
 ---
 
 <div class="release-dashboard" id="versao-atual">
   <div class="release-dashboard-main">
-    <span class="release-channel">STABLE · ATUALIZAÇÃO CORRETIVA</span>
-    <h2 id="release-version">v2026.2.0.2</h2>
-    <p>Desempenho e estabilidade para ambientes com muitos computadores, preservando filtros, heartbeat, seats, operação offline e AutoUpdate.</p>
+    <span class="release-channel">STABLE · SEGURANÇA E EVOLUÇÃO COMERCIAL</span>
+    <h2 id="release-version">v2026.2.1.0</h2>
+    <p id="release-summary">Instalação administrativa segura, proteção de credenciais, entitlements comerciais, transferência de licenças e atualização funcional do Server.</p>
     <div class="release-actions">
-      <a id="release-setup" class="primary-action" href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.0.2/ProxyEdu-Setup-v2026.2.0.2.exe">Baixar instalador</a>
-      <a id="release-github" class="secondary-action on-dark" href="https://github.com/MarcosBravin/ProxyEdu/releases/tag/v2026.2.0.2">Ver no GitHub ↗</a>
+      <a id="release-setup" class="primary-action" href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.1.0/ProxyEdu-Setup-v2026.2.1.0.exe">Baixar instalador</a>
+      <a id="release-github" class="secondary-action on-dark" href="https://github.com/MarcosBravin/ProxyEdu/releases/tag/v2026.2.1.0">Ver no GitHub ↗</a>
     </div>
-    <p class="api-note" id="release-api-status" aria-live="polite">Dados conferidos com a release oficial.</p>
+    <p class="api-note" id="release-api-status" aria-live="polite">Consultando a release oficial no GitHub…</p>
   </div>
   <div class="release-metrics" aria-label="Evidências da versão">
-    <div><strong>190</strong><span>testes aprovados</span></div>
-    <div><strong>50</strong><span>Clients no cenário de carga</span></div>
-    <div><strong>0</strong><span>falhas ou testes ignorados</span></div>
+    <div><strong id="release-test-count">203</strong><span>testes aprovados</span></div>
+    <div><strong id="release-asset-count">6</strong><span>artefatos oficiais</span></div>
+    <div><strong id="release-failure-count">0</strong><span>falhas ou testes ignorados</span></div>
   </div>
 </div>
 
@@ -50,11 +48,11 @@ toc:
 
 Use o instalador para uma instalação completa. Os pacotes separados atendem ao AutoUpdate e a cenários administrativos específicos.
 
-<div class="release-download-grid" id="release-assets">
-  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.0.2/ProxyEdu-Setup-v2026.2.0.2.exe"><strong>Instalador Windows</strong><span>ProxyEdu-Setup-v2026.2.0.2.exe · 61,2 MB</span></a>
-  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.0.2/ProxyEdu.Client-v2026.2.0.2.zip"><strong>ProxyEdu Client</strong><span>Pacote ZIP + assinatura separada</span></a>
-  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.0.2/ProxyEdu.Server-v2026.2.0.2.zip"><strong>ProxyEdu Server</strong><span>Pacote ZIP + assinatura separada</span></a>
-  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.0.2/update-manifest.json"><strong>Manifesto</strong><span>update-manifest.json</span></a>
+<div class="release-download-grid" id="release-assets" aria-live="polite">
+  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.1.0/ProxyEdu-Setup-v2026.2.1.0.exe"><strong>Instalador Windows</strong><span>ProxyEdu-Setup-v2026.2.1.0.exe · 61,2 MB</span></a>
+  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.1.0/ProxyEdu.Client-v2026.2.1.0.zip"><strong>ProxyEdu Client</strong><span>ProxyEdu.Client-v2026.2.1.0.zip · 63,7 MB</span></a>
+  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.1.0/ProxyEdu.Server-v2026.2.1.0.zip"><strong>ProxyEdu Server</strong><span>ProxyEdu.Server-v2026.2.1.0.zip · 54,2 MB</span></a>
+  <a href="https://github.com/MarcosBravin/ProxyEdu/releases/download/v2026.2.1.0/update-manifest.json"><strong>Manifesto</strong><span>update-manifest.json · 1,1 KB</span></a>
 </div>
 
 ## 3. Integridade — SHA-256
@@ -62,45 +60,49 @@ Use o instalador para uma instalação completa. Os pacotes separados atendem ao
 
 Compare o hash do arquivo baixado antes da instalação, especialmente quando ele foi transportado por outro sistema ou mídia.
 
-| Artefato | SHA-256 |
-|---|---|
-| `ProxyEdu-Setup-v2026.2.0.2.exe` | `8987E18C11E80ACB97A7101C8EF62C56CC4058EEFA2C601BD8A90DD6F8B8BA7A` |
-| `ProxyEdu.Client-v2026.2.0.2.zip` | `2425844360977891816D5004BFC3C9C960F720B544970F9E07495B365A266B89` |
-| `ProxyEdu.Client-v2026.2.0.2.sig` | `3B93FAA5518149F4823AE627CAD0BC130BCEC5975DA418D22234F386DBEF3DEE` |
-| `ProxyEdu.Server-v2026.2.0.2.zip` | `5389CA0B86F4D9FBEC3799B890CC8C6FFB40DB9F5299E62985FAD5BA2831C615` |
-| `ProxyEdu.Server-v2026.2.0.2.sig` | `B332BEC7043C7AC08F4843BE700C4B059910EE79F65D3078F5CCF9DBE32ECDFF` |
-| `update-manifest.json` | `C188A025A158270C23BC56C253E1CF84BDE1467C9D1D1E958652BB2D3EDC677D` |
+<div class="release-integrity-table" role="region" aria-label="Hashes SHA-256 dos artefatos" tabindex="0">
+  <table>
+    <thead><tr><th>Artefato</th><th>SHA-256</th></tr></thead>
+    <tbody id="release-hashes">
+      <tr><td><code>ProxyEdu-Setup-v2026.2.1.0.exe</code></td><td><code>98C85A9C23FC203D18551D1C97C7FFEE1DA7E80480FF79DA3827ADED0E1684BC</code></td></tr>
+      <tr><td><code>ProxyEdu.Client-v2026.2.1.0.sig</code></td><td><code>DC4614888003EC885CFEA66C5366B22775CD43CD7D05F4D9A7F7747579EA0F41</code></td></tr>
+      <tr><td><code>ProxyEdu.Client-v2026.2.1.0.zip</code></td><td><code>9356E5489A263517CC04DC96A663AF79FFC59896D99CEACC41650EA3E4BC7501</code></td></tr>
+      <tr><td><code>ProxyEdu.Server-v2026.2.1.0.sig</code></td><td><code>E90A1D2F8822517B2904086FCC07D26684456958F3FE05A81E282D4D6B7BBB57</code></td></tr>
+      <tr><td><code>ProxyEdu.Server-v2026.2.1.0.zip</code></td><td><code>B9560912820F0BB4B79EA8D2CAEAF072DC7E5C201E824A09098A192292E4A2B6</code></td></tr>
+      <tr><td><code>update-manifest.json</code></td><td><code>83F51A1FB9B250DD7035F6BCF631C7385ADA3AC7860F26DC31E99EFB3F552AD4</code></td></tr>
+    </tbody>
+  </table>
+</div>
 
 No PowerShell, calcule o hash com:
 
 ```powershell
-Get-FileHash .\ProxyEdu-Setup-v2026.2.0.2.exe -Algorithm SHA256
+Get-FileHash .\ProxyEdu-Setup-v2026.2.1.0.exe -Algorithm SHA256
 ```
 
-## 4. Melhorias da v2026.2.0.2
-{: #melhorias }
+## 4. Notas completas da release
+{: #notas }
 
-- o tráfego HTTP comum não executa mais observações ou persistências de seat;
-- heartbeats repetidos são consolidados antes da persistência;
-- consultas de estudantes usam identidade e índices, evitando varreduras completas;
-- caches controlados reduzem verificações repetitivas de configuração e licença;
-- limpeza de nonces expirados ocorre fora do processamento das requisições;
-- logs e estatísticas do dashboard são materializados incrementalmente;
-- atualizações SignalR preservam a atividade mais recente dentro da janela de agregação;
-- o dashboard reduz consultas e suspende atualizações quando não está visível.
+O conteúdo abaixo é substituído pela nota Markdown da release mais recente assim que a consulta oficial ao GitHub é concluída.
 
-## 5. Compatibilidade e atualização
-{: #compatibilidade }
+<div id="release-notes" class="release-notes" aria-live="polite" markdown="1">
+### Destaques da v2026.2.1.0
 
-A versão é compatível com atualização direta de **2026.2.0.0** e **2026.2.0.1**. Configurações, dispositivos, seats, auditoria e cache de licença existentes são preservados.
+- onboarding local seguro do primeiro administrador;
+- proteção contra retenção de credenciais no navegador;
+- entitlements comerciais e transferência segura de licenças;
+- correção da janela de atualização do ProxyEdu Server.
 
-Clients offline continuam ocupando seu seat. Clients Legacy continuam sem identidade permanente baseada somente em IP, MAC ou hostname. A indisponibilidade da API comercial não interrompe startup, proxy ou heartbeat.
+### Compatibilidade
+
+A versão é compatível com atualização direta de **2026.2.0.0**, **2026.2.0.1** e **2026.2.0.2**. Configurações, usuários, dispositivos, seats, auditoria e cache de licença existentes são preservados.
+</div>
 
 <div class="warning-box" markdown="1">
 **Antes de atualizar:** mantenha backup da configuração e do diretório de dados, confirme espaço livre e use apenas os artefatos oficiais desta página ou do GitHub.
 </div>
 
-## 6. Histórico e procedência
+## 5. Histórico e procedência
 {: #historico }
 
 O histórico completo, incluindo versões anteriores e seus artefatos, permanece na [área oficial de Releases do GitHub](https://github.com/MarcosBravin/ProxyEdu/releases).
