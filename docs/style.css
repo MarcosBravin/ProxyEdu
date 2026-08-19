@@ -439,3 +439,49 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Markdown documentation pages */
+.md-content > h2 { padding-top: 58px; margin-top: 58px; border-top: 1px solid var(--line); scroll-margin-top: 105px; }
+.md-content > h2:first-of-type { padding-top: 0; margin-top: 0; border-top: 0; }
+.md-content > h3 { margin-top: 36px; }
+.md-content pre { max-width: 100%; overflow-x: auto; padding: 20px; border: 1px solid var(--line-dark); background: var(--ink-soft); color: #dce1e3; font: 13px/1.65 var(--mono); }
+.md-content code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
+.md-content pre code { padding: 0; background: transparent; font-size: inherit; overflow-wrap: normal; }
+.md-content table { width: 100%; margin: 28px 0 38px; border-collapse: collapse; font-size: 13px; }
+.md-content th, .md-content td { padding: 13px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+.md-content th { background: var(--ink); color: var(--paper-bright); font: 700 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.md-content td code { display: inline; padding: 0; background: transparent; font-size: 11px; word-break: break-all; }
+.md-content input[type="checkbox"] { accent-color: var(--signal); }
+.release-dashboard { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(250px, .55fr); margin-bottom: 70px; border: 1px solid var(--line-dark); background: var(--ink-soft); color: var(--paper-bright); box-shadow: 14px 14px 0 rgba(240,90,50,.14); }
+.release-dashboard-main { padding: 36px; }
+.release-channel { color: #8dbcc1; font: 700 10px var(--mono); letter-spacing: .1em; }
+.release-dashboard h2 { margin: 22px 0 0; color: var(--signal); font: 800 clamp(48px, 7vw, 80px)/.9 var(--mono); letter-spacing: -.075em; }
+.release-dashboard-main > p { max-width: 680px; color: #aab2b6; }
+.release-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.release-dashboard .api-note { margin: 22px 0 0; color: #7f8a8f; font: 600 10px/1.5 var(--mono); }
+.release-metrics { display: grid; border-left: 1px solid #3b454a; }
+.release-metrics div { display: flex; flex-direction: column; justify-content: center; padding: 24px; border-bottom: 1px solid #3b454a; }
+.release-metrics div:last-child { border-bottom: 0; }
+.release-metrics strong { color: var(--paper-bright); font: 800 34px/1 var(--mono); }
+.release-metrics span { margin-top: 7px; color: #8f999e; font-size: 12px; }
+.release-download-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 30px 0 50px; border: 1px solid var(--line-dark); background: var(--line-dark); }
+.release-download-grid a { min-height: 112px; display: flex; flex-direction: column; justify-content: center; padding: 22px; background: var(--ink-soft); color: var(--paper-bright); text-decoration: none; transition: background .16s ease; }
+.release-download-grid a:hover { background: #1b252a; }
+.release-download-grid strong { color: var(--signal); font-size: 17px; }
+.release-download-grid span { margin-top: 7px; color: #929ca1; font: 600 10px/1.5 var(--mono); }
+@media (max-width: 760px) {
+  .release-dashboard { grid-template-columns: 1fr; box-shadow: 8px 8px 0 rgba(240,90,50,.14); }
+  .release-metrics { grid-template-columns: repeat(3, 1fr); border-top: 1px solid #3b454a; border-left: 0; }
+  .release-metrics div { padding: 18px 12px; border-right: 1px solid #3b454a; border-bottom: 0; }
+  .release-metrics div:last-child { border-right: 0; }
+  .release-metrics strong { font-size: 26px; }
+  .release-download-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .release-dashboard-main { padding: 25px; }
+  .release-metrics { grid-template-columns: 1fr; }
+  .release-metrics div { border-right: 0; border-bottom: 1px solid #3b454a; }
+  .release-actions { align-items: stretch; flex-direction: column; }
+  .release-actions a { width: 100%; }
+  .md-content table { display: block; overflow-x: auto; }
+}

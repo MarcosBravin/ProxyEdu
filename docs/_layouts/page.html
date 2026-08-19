@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{ page.description | escape }}">
+  <meta name="theme-color" content="#0a0c0f">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://proxyedu.bravintech.com{{ page.url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="ProxyEdu">
+  <meta property="og:title" content="{{ page.title | escape }} — ProxyEdu">
+  <meta property="og:description" content="{{ page.description | escape }}">
+  <meta property="og:url" content="https://proxyedu.bravintech.com{{ page.url }}">
+  <title>{{ page.title }} — ProxyEdu</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="docs-page">
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a><div class="topline" aria-hidden="true"></div>
+  <header class="site-header"><div class="shell header-grid">
+    <a class="brand" href="/" aria-label="ProxyEdu — início"><img src="/assets/logo.svg" alt="" width="38" height="38"><span>ProxyEdu</span></a>
+    <button class="menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">Menu</button>
+    <nav id="main-nav" class="main-nav" aria-label="Navegação principal">
+      <a href="/">Produto</a>
+      <a href="/como-funciona/"{% if page.section == 'como-funciona' %} aria-current="page"{% endif %}>Como funciona</a>
+      <a href="/seguranca/"{% if page.section == 'seguranca' %} aria-current="page"{% endif %}>Segurança</a>
+      <a href="/releases/"{% if page.section == 'releases' %} aria-current="page"{% endif %}>Releases</a>
+      <a href="/trial.html">Solicitar Trial</a>
+      <a class="nav-source" href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div></header>
+
+  <main id="conteudo">
+    <section class="legal-hero"><div class="shell legal-hero-grid"><div>
+      <p class="eyebrow">{{ page.eyebrow }}</p><h1>{{ page.title }}</h1><p class="intro">{{ page.intro }}</p>
+    </div><div class="policy-meta"><strong>{{ page.meta_title }}</strong>{% for item in page.meta %}<span>{{ item }}</span>{% endfor %}</div></div></section>
+    <div class="shell legal-layout">
+      <aside class="legal-toc" aria-label="Nesta página"><strong>NESTA PÁGINA</strong>{% for item in page.toc %}<a href="#{{ item.id }}">{{ item.label }}</a>{% endfor %}</aside>
+      <article class="legal-content md-content">{{ content }}</article>
+    </div>
+  </main>
+
+  <footer class="site-footer"><div class="shell footer-main">
+    <div class="footer-brand"><strong>ProxyEdu</strong><p>A internet no ritmo da aula.</p></div>
+    <div><h2>Produto</h2><a href="/">Página inicial</a><a href="/como-funciona/">Como funciona</a><a href="/releases/">Releases e downloads</a></div>
+    <div><h2>Confiança</h2><a href="/seguranca/">Segurança</a><a href="/privacidade.html">Privacidade</a><a href="/lgpd.html">Central LGPD</a></div>
+    <div><h2>Legal</h2><a href="/termos.html">Termos de Uso</a><a href="/cookies.html">Cookies</a><a href="https://github.com/MarcosBravin/ProxyEdu" target="_blank" rel="noopener noreferrer">GitHub</a></div>
+  </div><div class="shell footer-bottom"><span>© 2026 Marcos Bravin · ProxyEdu</span><span>Uso autorizado, responsável e transparente.</span></div></footer>
+  <script src="/script.js"></script>
+  {% if page.release_script %}<script src="/releases.js"></script>{% endif %}
+</body>
+</html>
