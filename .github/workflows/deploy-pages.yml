@@ -1,8 +1,8 @@
 name: Deploy site to GitHub Pages
 
 on:
-  push:
-    branches: [main]
+  # Temporariamente manual: a conta precisa liberar GitHub Actions.
+  # Enquanto isso, o Pages publica o build versionado em /docs.
   workflow_dispatch:
 
 permissions:

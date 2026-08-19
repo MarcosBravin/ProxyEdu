@@ -45,7 +45,10 @@ O site é estático, construído com Astro, React e TypeScript e publicado no Gi
 npm install
 npm run dev
 npm run build
+npm run build:pages
 ```
+
+`build:pages` gera a cópia de compatibilidade em `docs`, atualmente usada pelo GitHub Pages. O workflow moderno está disponível para ativação manual quando GitHub Actions estiver liberado na conta.
 
 O domínio canônico é `proxyedu.bravintech.com`. URLs antigas terminadas em `.html` são mantidas como redirecionamentos para as rotas limpas.
 
