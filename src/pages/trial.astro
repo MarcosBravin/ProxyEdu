@@ -1,8 +1,0 @@
----
-import BaseLayout from "../layouts/BaseLayout.astro";
-import TrialForm from "../components/TrialForm";
----
-<BaseLayout title="Solicitar avaliação — ProxyEdu" description="Solicite uma avaliação do ProxyEdu para uma rede escolar com mais de cinco dispositivos.">
-  <header class="page-hero"><div class="shell"><span class="eyebrow">Avaliação assistida</span><h1>Teste o ProxyEdu na rede da escola.</h1><p>Conte o tamanho e o contexto da instalação. A solicitação é analisada antes da liberação para evitar abuso e dimensionar corretamente a avaliação.</p></div></header>
-  <section class="section"><div class="shell content-grid"><aside><h3>Antes de enviar</h3><p class="muted">O plano Free já atende até 5 dispositivos e não exige pedido de avaliação.</p><p class="muted">A avaliação é vinculada ao ServerInstallationId. Formatar a máquina ou usar outra instalação não transfere automaticamente o benefício.</p><p class="muted">Não envie senhas, chaves privadas ou outros segredos neste formulário.</p></aside><TrialForm client:load /></div></section>
-</BaseLayout>
