@@ -441,6 +441,7 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
 }
 
 /* Markdown documentation pages */
+.docs-page .footer-main { grid-template-columns: 1.35fr repeat(3, 1fr); }
 .md-content > h2 { padding-top: 58px; margin-top: 58px; border-top: 1px solid var(--line); scroll-margin-top: 105px; }
 .md-content > h2:first-of-type { padding-top: 0; margin-top: 0; border-top: 0; }
 .md-content > h3 { margin-top: 36px; }
@@ -470,6 +471,8 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
 .release-download-grid strong { color: var(--signal); font-size: 17px; }
 .release-download-grid span { margin-top: 7px; color: #929ca1; font: 600 10px/1.5 var(--mono); }
 @media (max-width: 760px) {
+  .docs-page .footer-main { grid-template-columns: 1fr 1fr; }
+  .docs-page .footer-brand { grid-column: 1 / -1; }
   .release-dashboard { grid-template-columns: 1fr; box-shadow: 8px 8px 0 rgba(240,90,50,.14); }
   .release-metrics { grid-template-columns: repeat(3, 1fr); border-top: 1px solid #3b454a; border-left: 0; }
   .release-metrics div { padding: 18px 12px; border-right: 1px solid #3b454a; border-bottom: 0; }
@@ -478,6 +481,8 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
   .release-download-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
+  .docs-page .footer-main { grid-template-columns: 1fr; }
+  .docs-page .footer-brand { grid-column: 1; }
   .release-dashboard-main { padding: 25px; }
   .release-metrics { grid-template-columns: 1fr; }
   .release-metrics div { border-right: 0; border-bottom: 1px solid #3b454a; }
