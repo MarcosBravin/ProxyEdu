@@ -60,6 +60,51 @@
     if (!link.getAttribute('aria-label')) link.setAttribute('aria-label', `${accessibleText} — abre em nova guia`);
   });
 
+  const trialForm = byId('trial-form');
+  if (trialForm) {
+    const serverField = byId('trial-server');
+    const suppliedServer = new URLSearchParams(window.location.search).get('server')?.trim() || '';
+    if (/^[0-9a-f]{64}$/i.test(suppliedServer)) serverField.value = suppliedServer.toLowerCase();
+
+    trialForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const status = byId('trial-status');
+      const submit = byId('trial-submit');
+      status.className = 'trial-status';
+      status.textContent = '';
+      if (!trialForm.reportValidity()) return;
+      submit.disabled = true;
+      submit.textContent = 'Enviando…';
+      const data = new FormData(trialForm);
+      const payload = {
+        organizationName: String(data.get('organizationName') || '').trim(),
+        contactName: String(data.get('contactName') || '').trim(),
+        contactEmail: String(data.get('contactEmail') || '').trim(),
+        contactPhone: String(data.get('contactPhone') || '').trim() || null,
+        expectedDevices: Number(data.get('expectedDevices')),
+        serverInstallationId: String(data.get('serverInstallationId') || '').trim() || null,
+        privacyAccepted: data.get('privacyAccepted') === 'on',
+        website: String(data.get('website') || '')
+      };
+      try {
+        const response = await fetch('https://pxeapi.bravintech.com/api/public/v1/trial-requests', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload)
+        });
+        const result = response.headers.get('content-type')?.includes('json') ? await response.json() : null;
+        if (!response.ok) throw new Error(result?.message || result?.detail || 'Não foi possível enviar a solicitação agora.');
+        trialForm.reset();
+        status.className = 'trial-status success';
+        status.textContent = `Solicitação recebida com segurança. Protocolo ${result.requestId}. Ela será analisada antes de qualquer emissão.`;
+      } catch (error) {
+        status.className = 'trial-status error';
+        status.textContent = error.message || 'Não foi possível enviar a solicitação agora.';
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'Enviar solicitação';
+      }
+    });
+  }
+
   const SCENARIOS = {
     pesquisa: {
       title: 'Pesquisa orientada',
