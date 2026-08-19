@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://proxyedu.bravintech.com/sitemap.xml
+Sitemap: https://proxyedu.bravintech.com/sitemap-index.xml

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
+    "build:pages": "astro check && astro build --outDir docs",
     "preview": "astro preview",
     "check": "astro check"
   },
