@@ -39,6 +39,8 @@ O código-fonte do Server e do Client não está publicado neste repositório. P
 
 A documentação pública descreve finalidade, responsabilidades, atualizações, certificados e cuidados de implantação em nível suficiente para a tomada de decisão, sem publicar credenciais, chaves privadas, dados de produção ou detalhes que possam facilitar acesso não autorizado.
 
+Para entender o fluxo entre Dashboard, Server e Client, o tratamento de HTTPS, os dados operacionais e os cuidados de implantação, consulte a página de [Segurança e confiança](https://proxyedu.bravintech.com/seguranca/). A instituição deve avaliar a release em ambiente piloto antes de instalar em larga escala.
+
 ## O que existe neste repositório
 
 Este repositório contém:
