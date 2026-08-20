@@ -33,6 +33,12 @@ Transparência não significa publicar indiscriminadamente cada detalhe operacio
 
 O código-fonte do produto é mantido fora deste repositório por decisão de distribuição e proteção do produto. Isso não transforma o projeto em uma solução sem documentação: o comportamento destinado ao usuário, as responsabilidades de implantação e os limites de uso são descritos nas páginas públicas e nos documentos vinculados.
 
+## Transparência técnica
+
+O código-fonte do Server e do Client não está publicado neste repositório. Por isso, os materiais públicos não substituem uma auditoria independente do instalador ou da execução do produto. Para uma avaliação responsável, consulte a [Política de Segurança](SECURITY.md), valide a release oficial e faça a primeira instalação em ambiente piloto autorizado.
+
+A documentação pública descreve finalidade, responsabilidades, atualizações, certificados e cuidados de implantação em nível suficiente para a tomada de decisão, sem publicar credenciais, chaves privadas, dados de produção ou detalhes que possam facilitar acesso não autorizado.
+
 ## O que existe neste repositório
 
 Este repositório contém:

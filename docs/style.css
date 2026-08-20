@@ -148,6 +148,8 @@ section[id] { scroll-margin-top: 84px; }
 .architecture-section { padding: 130px 0; background: var(--ink-soft); color: var(--paper-bright); }
 .on-dark-heading h2 { color: var(--paper-bright); }
 .on-dark-heading > p { color: #939da2; }
+.architecture-note { max-width: 860px; margin: 28px 0 0; color: #b7c0c4; font-size: 16px; line-height: 1.65; }
+.architecture-note a { color: var(--signal); text-decoration: underline; text-underline-offset: 3px; }
 .architecture-map { display: grid; grid-template-columns: minmax(170px, .9fr) minmax(90px, .4fr) minmax(210px, 1.1fr) minmax(90px, .4fr) minmax(170px, .9fr); align-items: stretch; margin-top: 78px; border-top: 1px solid #465056; border-bottom: 1px solid #465056; }
 .map-node { min-height: 255px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; position: relative; padding: 24px; border-right: 1px solid #465056; border-left: 1px solid #465056; }
 .map-node strong { margin-top: 22px; font-size: 19px; }
