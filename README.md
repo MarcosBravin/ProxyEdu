@@ -46,26 +46,25 @@ Este repositório contém:
 
 Este repositório **não** contém o código-fonte interno do produto, credenciais, chaves privadas, bancos de produção, dados de instituições ou informações operacionais confidenciais.
 
-## Comece por aqui
+## Instalação pela última release
 
-1. Leia a [documentação de instalação](INSTALLATION.md).
-2. Consulte a [documentação de uso](USAGE.md).
-3. Verifique a versão disponível em [Releases](https://github.com/MarcosBravin/ProxyEdu/releases).
-4. Confira o SHA-256 do instalador antes de executá-lo.
-5. Faça a implantação primeiro em um ambiente piloto autorizado.
-6. Restrinja o painel, proteja as credenciais e valide a política institucional antes de ampliar o uso.
+O caminho recomendado é sempre instalar a **release estável mais recente**. A página de Releases é a fonte oficial do instalador e evita que versões antigas, cópias modificadas ou arquivos de origem desconhecida sejam usados.
+
+1. Abra [Releases](https://github.com/MarcosBravin/ProxyEdu/releases).
+2. Entre na release marcada como estável e mais recente.
+3. Na seção de arquivos, baixe o instalador oficial `ProxyEdu-Setup-*.exe`.
+4. Confira na própria release o nome do arquivo, a assinatura e o SHA-256 publicados.
+5. No Windows, abra as propriedades do `.exe` e use a guia de assinatura digital, quando disponível, para verificar o editor e o status da assinatura.
+6. Execute o instalador em um computador Windows autorizado, seguindo as instruções exibidas na tela.
+7. Faça primeiro um teste em uma estação piloto antes de distribuir o Client para o restante do ambiente.
+
+Para o roteiro completo, consulte [Instalação](INSTALLATION.md). Não instale arquivos recebidos por mensagens, links encurtados, páginas não oficiais ou cópias sem integridade verificável.
 
 ## Downloads oficiais
 
-Os instaladores oficiais são publicados somente nas [Releases do repositório](https://github.com/MarcosBravin/ProxyEdu/releases). Não confie em cópias recebidas por canais não oficiais.
+Os instaladores oficiais são publicados somente nas [Releases do repositório](https://github.com/MarcosBravin/ProxyEdu/releases). Baixe o `.exe` diretamente da release estável mais recente e confira os dados de integridade apresentados na página antes da instalação.
 
-No PowerShell, valide a integridade do arquivo baixado:
-
-```powershell
-Get-FileHash -Algorithm SHA256 .\ProxyEdu-Setup.exe
-```
-
-Compare o resultado com o hash publicado na release correspondente. Não execute o arquivo se a origem, a assinatura ou o hash não puderem ser verificados.
+Não confie em cópias recebidas por canais não oficiais. Se a assinatura, o hash, o nome do arquivo ou a origem não puderem ser verificados, não execute o instalador e solicite orientação pelos canais oficiais.
 
 ## Implantação e uso responsável
 
@@ -112,6 +111,8 @@ Não. O uso deve ser limitado à finalidade autorizada, com transparência, cont
 
 - [Instalação](INSTALLATION.md)
 - [Uso](USAGE.md)
+- [Código de Conduta](CODE_OF_CONDUCT.md)
+- [Como contribuir](CONTRIBUTING.md)
 - [Política de Segurança](SECURITY.md)
 - [Política de Privacidade](https://proxyedu.bravintech.com/privacidade.html)
 - [Central LGPD](https://proxyedu.bravintech.com/lgpd.html)
@@ -125,6 +126,10 @@ Não. O uso deve ser limitado à finalidade autorizada, com transparência, cont
 - Releases: [github.com/MarcosBravin/ProxyEdu/releases](https://github.com/MarcosBravin/ProxyEdu/releases)
 - Discussões: [GitHub Discussions](https://github.com/MarcosBravin/ProxyEdu/discussions)
 - Vulnerabilidades: [GitHub Security Advisories](https://github.com/MarcosBravin/ProxyEdu/security/advisories/new)
+
+## Participação no projeto
+
+Relatos, sugestões e contribuições devem respeitar o [Código de Conduta](CODE_OF_CONDUCT.md), as orientações de [Contribuição](CONTRIBUTING.md), a [Política de Segurança](SECURITY.md) e a [Licença](LICENSE). O material enviado deve ser original, não conter dados sensíveis e estar relacionado ao conteúdo público deste repositório.
 
 Não publique em issues, discussões ou capturas de tela credenciais, chaves privadas, certificados institucionais, dados de estudantes, endereços internos, logs integrais ou informações de produção.
 

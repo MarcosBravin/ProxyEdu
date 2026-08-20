@@ -7,23 +7,22 @@
 - Confirme que a implantação e o monitoramento foram autorizados pela instituição.
 - Planeje firewall, segmentação de rede, retenção de registros e backups.
 
-## Obter o instalador
+## Obter o instalador da última release
+
+A instalação deve começar pela [última release estável oficial](https://github.com/MarcosBravin/ProxyEdu/releases). Não use instaladores antigos, cópias hospedadas por terceiros ou arquivos recebidos fora dos canais oficiais.
 
 1. Abra a página de [Releases](https://github.com/MarcosBravin/ProxyEdu/releases).
-2. Baixe apenas o instalador anexado à release oficial desejada.
-3. Calcule o SHA-256 do arquivo e compare-o com o valor publicado na release.
+2. Selecione a release estável mais recente, sem indicação de rascunho ou pré-lançamento.
+3. Na lista de arquivos, baixe o instalador oficial com nome semelhante a `ProxyEdu-Setup-vAAAA.B.C.D.exe`.
+4. Na página da mesma release, confira o nome do arquivo, o SHA-256 e as informações de assinatura publicadas.
+5. No Windows, clique com o botão direito no arquivo `.exe`, abra **Propriedades** e consulte a guia **Assinaturas Digitais**, quando disponível.
+6. Só prossiga se a origem, a assinatura e a integridade forem compatíveis com a release escolhida.
 
-No PowerShell:
-
-```powershell
-Get-FileHash -Algorithm SHA256 .\NOME-DO-INSTALADOR.exe
-```
-
-Não execute o arquivo se o hash, a origem ou a assinatura não puderem ser validados.
+Não execute o arquivo se qualquer uma dessas verificações falhar. Em caso de dúvida, interrompa a instalação e use os canais oficiais do projeto.
 
 ## Ordem recomendada
 
-1. Execute o instalador como administrador no computador escolhido para o Server.
+1. Execute o `.exe` baixado no computador escolhido para o Server, autorizando a instalação quando o Windows solicitar.
 2. Conclua a configuração inicial e restrinja o Dashboard à rede administrativa autorizada.
 3. Troque imediatamente a credencial administrativa inicial.
 4. Faça backup das configurações e do banco antes de ampliar a implantação.
@@ -39,4 +38,4 @@ Não execute o arquivo se o hash, a origem ou a assinatura não puderem ser vali
 - Em redes segmentadas, valide as regras entre as estações e o Server com a equipe de TI.
 - Documente como remover o Client, restaurar a configuração de rede e revogar certificados.
 
-Consulte também a [Política de Segurança](SECURITY.md), a [Política de Privacidade](https://proxyedu.bravintech.com/privacidade.html) e a [Central LGPD](https://proxyedu.bravintech.com/lgpd.html).
+Consulte também a [Política de Segurança](SECURITY.md), a [Política de Privacidade](https://proxyedu.bravintech.com/privacidade.html), a [Central LGPD](https://proxyedu.bravintech.com/lgpd.html), o [Código de Conduta](CODE_OF_CONDUCT.md) e as orientações de [Contribuição](CONTRIBUTING.md).
