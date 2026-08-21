@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Conheça os planos comerciais do ProxyEdu e prepare a assinatura para sua escola ou laboratório.">
+  <meta name="theme-color" content="#0a0c0f">
+  <meta name="robots" content="index,follow">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://pxeapi.bravintech.com; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
+  <link rel="canonical" href="https://proxyedu.bravintech.com/assinar/">
+  <title>Assinar o ProxyEdu — Planos para escolas e laboratórios</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="checkout-page" data-checkout-enabled="false">
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+  <div class="topline" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="shell header-grid">
+      <a class="brand" href="../" aria-label="ProxyEdu — início">
+        <img src="../assets/logo.svg" alt="" width="38" height="38">
+        <span>ProxyEdu</span>
+      </a>
+      <button class="menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">Menu</button>
+      <nav id="main-nav" class="main-nav" aria-label="Navegação principal">
+        <a href="../">Produto</a>
+        <a href="../#planos">Planos</a>
+        <a href="./" aria-current="page">Assinar</a>
+        <a href="../trial.html">Solicitar Trial</a>
+        <a href="../seguranca/">Segurança</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <section class="checkout-hero" aria-labelledby="checkout-title">
+      <div class="shell checkout-hero-grid">
+        <div>
+          <p class="eyebrow light">Licenciamento comercial / cobrança recorrente</p>
+          <h1 id="checkout-title">Escolha o alcance.<br><em>Preserve o controle local.</em></h1>
+          <p class="intro">A licença comercial amplia a quantidade de dispositivos sem transformar a nuvem em requisito para a rotina da escola.</p>
+          <div class="actions checkout-hero-actions">
+            <a class="primary-action" href="#planos-comerciais">Comparar planos</a>
+            <a class="secondary-action on-dark" href="../trial.html">Solicitar Trial</a>
+          </div>
+        </div>
+        <aside class="checkout-readiness" aria-label="Estado da contratação online">
+          <span class="readiness-label">STATUS DA CONTRATAÇÃO</span>
+          <strong>Preparação final</strong>
+          <p>A página está pronta, mas novas cobranças permanecem bloqueadas até a ativação controlada do ambiente de produção.</p>
+          <span class="readiness-state"><i aria-hidden="true"></i> Nenhum pagamento será iniciado agora</span>
+        </aside>
+      </div>
+    </section>
+
+    <section class="checkout-trust-strip" aria-label="Garantias do fluxo comercial">
+      <div class="shell">
+        <span>Preço confirmado pela API</span>
+        <span>Pagamento no Mercado Pago</span>
+        <span>Licença após aprovação</span>
+        <span>Operação local preservada</span>
+      </div>
+    </section>
+
+    <section id="planos-comerciais" class="commercial-plans-section" aria-labelledby="commercial-plans-title">
+      <div class="shell">
+        <div class="section-heading split-heading">
+          <div>
+            <p class="eyebrow">Planos comerciais</p>
+            <h2 id="commercial-plans-title">Um plano para cada<br>tamanho de ambiente.</h2>
+          </div>
+          <p>O valor final é carregado do catálogo autoritativo do ProxyEdu. Escolha o ciclo e depois informe os dados do responsável pela contratação.</p>
+        </div>
+
+        <div class="billing-switch" role="group" aria-label="Ciclo de cobrança">
+          <button type="button" data-billing="Monthly" aria-pressed="true">Mensal</button>
+          <button type="button" data-billing="Annual" aria-pressed="false">Anual <span>2 meses de economia</span></button>
+        </div>
+
+        <p id="catalog-status" class="catalog-status" role="status" aria-live="polite">Carregando catálogo comercial…</p>
+        <div id="commercial-plan-grid" class="commercial-plan-grid" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="checkout-form-section" aria-labelledby="checkout-form-title">
+      <div class="shell checkout-form-layout">
+        <article class="checkout-explainer">
+          <p class="eyebrow">Como funciona</p>
+          <h2>Da escolha à licença,<br>sem atalhos inseguros.</h2>
+          <ol class="checkout-steps">
+            <li><span>01</span><div><strong>Confira o plano</strong><p>O preço e o limite de dispositivos vêm diretamente do catálogo comercial.</p></div></li>
+            <li><span>02</span><div><strong>Autorize a assinatura</strong><p>O pagamento acontece no ambiente do Mercado Pago.</p></div></li>
+            <li><span>03</span><div><strong>Aguarde a confirmação</strong><p>A licença só é emitida após o backend validar um pagamento aprovado.</p></div></li>
+            <li><span>04</span><div><strong>Ative no ProxyEdu</strong><p>As instruções e a chave são enviadas ao e-mail informado.</p></div></li>
+          </ol>
+          <div class="account-notice">
+            <strong>Conta Mercado Pago necessária</strong>
+            <p>Para autorizar cobranças recorrentes, o comprador deverá entrar ou criar uma conta no Mercado Pago durante o checkout.</p>
+          </div>
+        </article>
+
+        <article class="checkout-form-card">
+          <form id="commercial-checkout-form" novalidate>
+            <div class="selected-plan-summary">
+              <span>PLANO SELECIONADO</span>
+              <strong id="selected-plan-name">Lab 15 — Mensal</strong>
+              <p><b id="selected-plan-price">R$ 69,00</b> <small id="selected-plan-cycle">por mês</small></p>
+              <button type="button" id="change-plan">Alterar plano</button>
+            </div>
+
+            <div class="checkout-form-content">
+              <h2 id="checkout-form-title">Dados da contratação</h2>
+              <p class="form-intro">Use os dados do responsável que receberá a licença. Campos marcados com * são obrigatórios.</p>
+              <div class="trial-form-grid">
+                <div class="span-two">
+                  <label for="commercial-organization">Escola ou organização *</label>
+                  <input id="commercial-organization" name="organizationName" type="text" required maxlength="200" autocomplete="organization">
+                </div>
+                <div>
+                  <label for="commercial-name">Responsável *</label>
+                  <input id="commercial-name" name="customerName" type="text" required maxlength="200" autocomplete="name">
+                </div>
+                <div>
+                  <label for="commercial-email">E-mail para a licença *</label>
+                  <input id="commercial-email" name="contactEmail" type="email" required maxlength="320" autocomplete="email">
+                </div>
+                <div class="website-field" aria-hidden="true">
+                  <label for="commercial-website">Website</label>
+                  <input id="commercial-website" name="website" type="text" tabindex="-1" autocomplete="off">
+                </div>
+                <label class="consent-field span-two">
+                  <input id="commercial-privacy" name="privacyAccepted" type="checkbox" required>
+                  <span>Li a <a href="../privacidade.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>, aceito o tratamento dos dados da contratação e concordo com os <a href="../termos.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a>. *</span>
+                </label>
+              </div>
+              <button id="commercial-submit" class="primary-action trial-submit" type="submit" disabled>Compra online em preparação</button>
+              <p class="checkout-submit-note">Ao prosseguir, você será redirecionado para o ambiente seguro do Mercado Pago. O ProxyEdu não recebe os dados do seu cartão.</p>
+              <p id="commercial-status" class="trial-status" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section class="checkout-faq" aria-labelledby="checkout-faq-title">
+      <div class="shell checkout-faq-grid">
+        <div><p class="eyebrow">Antes de contratar</p><h2 id="checkout-faq-title">Perguntas importantes.</h2></div>
+        <div class="checkout-faq-list">
+          <details><summary>Quando a licença é liberada?</summary><p>Somente depois que o Mercado Pago confirmar o pagamento e o ProxyEdu validar essa confirmação diretamente no provedor.</p></details>
+          <details><summary>O ProxyEdu para se a internet cair?</summary><p>Não. A licença usa um documento assinado e cache local para preservar a operação durante indisponibilidades temporárias.</p></details>
+          <details><summary>Posso cancelar a assinatura?</summary><p>Sim. O cancelamento interrompe renovações futuras e segue as regras comerciais e o período já pago.</p></details>
+          <details><summary>Preciso ter conta no Mercado Pago?</summary><p>Sim. A autorização de uma assinatura recorrente exige login ou criação de uma conta no checkout do Mercado Pago.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-main">
+      <div class="footer-brand"><strong>ProxyEdu</strong><p>Gestão responsável da internet em ambientes educacionais.</p></div>
+      <div><h2>Projeto</h2><a href="../">Página inicial</a><a href="../#planos">Planos</a><a href="../trial.html">Solicitar Trial</a></div>
+      <div><h2>Confiança</h2><a href="../seguranca/">Segurança</a><a href="../como-funciona/">Como funciona</a></div>
+      <div><h2>Legal</h2><a href="../privacidade.html">Privacidade</a><a href="../termos.html">Termos</a><a href="../cookies.html">Cookies</a></div>
+    </div>
+    <div class="shell footer-bottom"><span>© 2026 Marcos Bravin · ProxyEdu</span><span>A cobrança online permanece desabilitada até a ativação de produção.</span></div>
+  </footer>
+
+  <script src="../script.js"></script>
+  <script src="checkout.js"></script>
+</body>
+</html>

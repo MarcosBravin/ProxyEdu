@@ -2,6 +2,8 @@
 
 Site estático institucional, técnico e jurídico do projeto ProxyEdu para publicação no GitHub Pages.
 
+A página dedicada de contratação fica em `assinar/`. O fluxo comercial está implementado contra a API oficial, mas nasce com `data-checkout-enabled="false"`; altere essa chave somente durante a ativação controlada de produção.
+
 ## Estrutura
 
 - `index.html` — página institucional com demonstração interativa dos cenários de aula.
