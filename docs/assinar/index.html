@@ -35,23 +35,35 @@
   </header>
 
   <main id="conteudo">
-    <section class="checkout-hero" aria-labelledby="checkout-title">
-      <div class="shell checkout-hero-grid">
-        <div>
-          <p class="eyebrow light">Licenciamento comercial / cobrança recorrente</p>
-          <h1 id="checkout-title">Escolha o alcance.<br><em>Preserve o controle local.</em></h1>
-          <p class="intro">A licença comercial amplia a quantidade de dispositivos sem transformar a nuvem em requisito para a rotina da escola.</p>
-          <div class="actions checkout-hero-actions">
-            <a class="primary-action" href="#planos-comerciais">Comparar planos</a>
-            <a class="secondary-action on-dark" href="../trial.html">Solicitar Trial</a>
+    <section id="planos-comerciais" class="commercial-plans-section plans-first" aria-labelledby="commercial-plans-title">
+      <div class="shell">
+        <div class="plans-first-heading">
+          <div>
+            <p class="eyebrow light">Licenciamento comercial / cobrança recorrente</p>
+            <h1 id="commercial-plans-title">Escolha seu plano.<br><em>Comece em minutos.</em></h1>
+            <p class="plans-first-intro">Compare os limites, escolha o ciclo de cobrança e contrate com segurança pelo Mercado Pago.</p>
+          </div>
+          <aside class="checkout-readiness" aria-label="Estado da contratação online">
+            <span class="readiness-label">STATUS DA CONTRATAÇÃO</span>
+            <strong>Contratação disponível</strong>
+            <p>O preço final vem do catálogo oficial. A licença só é emitida após a confirmação do pagamento.</p>
+            <span class="readiness-state"><i aria-hidden="true"></i> Pagamentos processados pelo Mercado Pago</span>
+          </aside>
+        </div>
+
+        <div class="plans-toolbar">
+          <div>
+            <p class="eyebrow">Planos comerciais</p>
+            <strong>Selecione o ciclo de cobrança</strong>
+          </div>
+          <div class="billing-switch" role="group" aria-label="Ciclo de cobrança">
+            <button type="button" data-billing="Monthly" aria-pressed="true">Mensal</button>
+            <button type="button" data-billing="Annual" aria-pressed="false">Anual <span>2 meses de economia</span></button>
           </div>
         </div>
-        <aside class="checkout-readiness" aria-label="Estado da contratação online">
-          <span class="readiness-label">STATUS DA CONTRATAÇÃO</span>
-          <strong>Contratação disponível</strong>
-          <p>Escolha um plano, confirme seus dados e autorize a assinatura no ambiente seguro do Mercado Pago.</p>
-          <span class="readiness-state"><i aria-hidden="true"></i> Pagamentos processados pelo Mercado Pago</span>
-        </aside>
+
+        <p id="catalog-status" class="catalog-status" role="status" aria-live="polite">Carregando catálogo comercial…</p>
+        <div id="commercial-plan-grid" class="commercial-plan-grid" aria-live="polite"></div>
       </div>
     </section>
 
@@ -61,26 +73,6 @@
         <span>Pagamento no Mercado Pago</span>
         <span>Licença após aprovação</span>
         <span>Operação local preservada</span>
-      </div>
-    </section>
-
-    <section id="planos-comerciais" class="commercial-plans-section" aria-labelledby="commercial-plans-title">
-      <div class="shell">
-        <div class="section-heading split-heading">
-          <div>
-            <p class="eyebrow">Planos comerciais</p>
-            <h2 id="commercial-plans-title">Um plano para cada<br>tamanho de ambiente.</h2>
-          </div>
-          <p>O valor final é carregado do catálogo autoritativo do ProxyEdu. Escolha o ciclo e depois informe os dados do responsável pela contratação.</p>
-        </div>
-
-        <div class="billing-switch" role="group" aria-label="Ciclo de cobrança">
-          <button type="button" data-billing="Monthly" aria-pressed="true">Mensal</button>
-          <button type="button" data-billing="Annual" aria-pressed="false">Anual <span>2 meses de economia</span></button>
-        </div>
-
-        <p id="catalog-status" class="catalog-status" role="status" aria-live="polite">Carregando catálogo comercial…</p>
-        <div id="commercial-plan-grid" class="commercial-plan-grid" aria-live="polite"></div>
       </div>
     </section>
 

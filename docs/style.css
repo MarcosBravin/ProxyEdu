@@ -456,11 +456,22 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
 .checkout-trust-strip span { padding: 8px 20px; border-right: 1px solid var(--line); color: var(--ink-soft); font: 700 10px/1.5 var(--mono); text-align: center; text-transform: uppercase; letter-spacing: .05em; }
 .checkout-trust-strip span:first-child { border-left: 1px solid var(--line); }
 .commercial-plans-section { padding: 100px 0 112px; background: var(--paper); }
+.commercial-plans-section.plans-first { padding: 54px 0 72px; }
+.plans-first-heading { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .7fr); gap: 64px; align-items: center; }
+.plans-first-heading .eyebrow { color: var(--teal); }
+.plans-first-heading h1 { max-width: 780px; margin: 16px 0 0; font-size: clamp(42px, 5.6vw, 76px); line-height: .92; letter-spacing: -.06em; scroll-margin-top: 100px; }
+.plans-first-heading h1 em { color: var(--signal); font-style: normal; }
+.plans-first-intro { max-width: 670px; margin: 20px 0 0; color: var(--muted); font-size: 17px; }
+.plans-first-heading .checkout-readiness { background: var(--ink); }
+.plans-toolbar { display: flex; justify-content: space-between; gap: 30px; align-items: end; margin-top: 42px; padding-top: 26px; border-top: 1px solid var(--line-dark); }
+.plans-toolbar .eyebrow { margin-bottom: 8px; }
+.plans-toolbar > div > strong { font-size: 18px; }
 .billing-switch { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 40px; padding: 4px; border: 1px solid var(--line-dark); background: var(--paper-deep); }
+.plans-toolbar .billing-switch { flex: 0 0 auto; margin-top: 0; }
 .billing-switch button { min-width: 180px; min-height: 50px; padding: 8px 18px; border: 0; background: transparent; color: var(--muted); font: 750 13px var(--sans); cursor: pointer; }
 .billing-switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper-bright); }
 .billing-switch span { display: block; margin-top: 3px; color: var(--green); font: 700 9px var(--mono); text-transform: uppercase; }
-.catalog-status { min-height: 22px; margin: 22px 0 0; color: var(--muted); font: 600 11px var(--mono); }
+.catalog-status { min-height: 22px; margin: 18px 0 0; color: var(--muted); font: 600 11px var(--mono); }
 .catalog-status.success { color: var(--green); }
 .catalog-status.warning { color: #9b6719; }
 .commercial-plan-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: 26px; border: 1px solid var(--line-dark); background: var(--line-dark); }
@@ -512,7 +523,7 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
 .checkout-faq-list details[open] summary::after { content: "−"; }
 .checkout-faq-list details p { max-width: 720px; margin: -6px 0 24px; color: var(--muted); font-size: 13px; }
 @media (max-width: 1020px) {
-  .checkout-hero-grid { grid-template-columns: 1fr; gap: 48px; align-items: start; }
+  .checkout-hero-grid, .plans-first-heading { grid-template-columns: 1fr; gap: 34px; align-items: start; }
   .checkout-readiness { max-width: 600px; }
   .commercial-plan-grid { grid-template-columns: 1fr 1fr; }
   .checkout-form-layout { grid-template-columns: 1fr; gap: 55px; }
@@ -523,14 +534,17 @@ code { padding: 2px 5px; background: var(--paper-deep); font-family: var(--mono)
   .checkout-trust-strip .shell { grid-template-columns: 1fr 1fr; }
   .checkout-trust-strip span:nth-child(3) { border-left: 1px solid var(--line); }
   .commercial-plans-section, .checkout-form-section, .checkout-faq { padding: 70px 0; }
+  .commercial-plans-section.plans-first { padding: 44px 0 60px; }
+  .plans-toolbar { align-items: stretch; flex-direction: column; gap: 18px; margin-top: 34px; }
   .checkout-faq-grid { grid-template-columns: 1fr; gap: 40px; }
 }
 @media (max-width: 560px) {
-  .checkout-hero h1 { font-size: 48px; }
+  .checkout-hero h1, .plans-first-heading h1 { font-size: 46px; }
   .checkout-readiness { padding: 22px; box-shadow: 7px 7px 0 rgba(240,90,50,.12); }
   .checkout-trust-strip .shell, .commercial-plan-grid { grid-template-columns: 1fr; }
   .checkout-trust-strip span, .checkout-trust-strip span:nth-child(3) { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); }
   .billing-switch { width: 100%; }
+  .plans-toolbar .billing-switch { flex: auto; }
   .billing-switch button { min-width: 0; }
   .commercial-plan-card ul { min-height: 0; }
   .checkout-form-layout { display: block; }
