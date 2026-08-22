@@ -13,7 +13,7 @@ A página dedicada de contratação fica em `assinar/`. O fluxo comercial está 
 - `cookies.html` — política específica do site público.
 - `style.css` — layout e responsividade.
 - `script.js` — menu mobile, cenários interativos, acessibilidade das tabelas e atualização opcional da release pela API pública do GitHub.
-- `assets/logo.svg` e `assets/favicon.svg` — identidade visual de rede do ProxyEdu.
+- `assets/proxyedu-*.png` — identidade visual oficial do ProxyEdu para cabeçalhos, rodapés e ícone do site.
 - `robots.txt` e `sitemap.xml` — descoberta pelos mecanismos de busca.
 
 ## Releases

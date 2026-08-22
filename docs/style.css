@@ -38,7 +38,7 @@ section[id] { scroll-margin-top: 84px; }
 .site-header { position: sticky; z-index: 50; top: 0; border-bottom: 1px solid var(--line-dark); background: var(--ink); color: var(--paper-bright); }
 .header-grid { min-height: 72px; display: grid; grid-template-columns: max-content 1fr; align-items: center; gap: 32px; }
 .brand { position: relative; display: inline-flex; align-items: center; gap: 10px; color: var(--paper-bright); text-decoration: none; font-weight: 850; letter-spacing: -.035em; }
-.brand img { display: block; width: 34px; height: 34px; }
+.brand img { display: block; width: 40px; height: 36px; object-fit: contain; border-radius: 8px; }
 .brand-word, .brand > span:not(.brand-edition) { font-size: 20px; }
 .brand-edition { margin-left: 2px; color: #81898e; font: 600 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .main-nav { display: flex; justify-content: flex-end; align-items: center; gap: 28px; font-size: 13px; font-weight: 650; }
@@ -242,7 +242,8 @@ section[id] { scroll-margin-top: 84px; }
 .footer-main h2 { margin: 0 0 13px; color: #909a9f; font: 700 10px var(--mono); letter-spacing: .09em; text-transform: uppercase; }
 .footer-main a { color: #c3c9cb; font-size: 13px; text-underline-offset: 4px; }
 .footer-main a:hover { color: var(--signal); }
-.footer-brand strong { font-size: 25px; letter-spacing: -.04em; }
+.footer-brand::before { content: ""; display: block; width: min(210px, 100%); aspect-ratio: 790 / 300; margin-bottom: 8px; background: url("assets/proxyedu-logo-horizontal-light.png") left center / contain no-repeat; }
+.footer-brand strong { display: none; }
 .footer-brand p { margin: 4px 0; color: #a1aaae; }
 .footer-brand span { color: #8c969b; font: 600 10px var(--mono); }
 .footer-bottom { display: flex; justify-content: space-between; gap: 30px; margin-top: 50px; padding-top: 20px; border-top: 1px solid #30393e; color: #8c969b; font-size: 11px; }
