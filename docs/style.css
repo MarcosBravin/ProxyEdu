@@ -38,7 +38,7 @@ section[id] { scroll-margin-top: 84px; }
 .site-header { position: sticky; z-index: 50; top: 0; border-bottom: 1px solid var(--line-dark); background: var(--ink); color: var(--paper-bright); }
 .header-grid { min-height: 72px; display: grid; grid-template-columns: max-content 1fr; align-items: center; gap: 32px; }
 .brand { position: relative; display: inline-flex; align-items: center; gap: 10px; color: var(--paper-bright); text-decoration: none; font-weight: 850; letter-spacing: -.035em; }
-.brand img { display: block; width: 40px; height: 36px; object-fit: contain; border-radius: 8px; }
+.brand img { display: block; width: 36px; height: 37px; object-fit: contain; }
 .brand-word, .brand > span:not(.brand-edition) { font-size: 20px; }
 .brand-edition { margin-left: 2px; color: #81898e; font: 600 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .main-nav { display: flex; justify-content: flex-end; align-items: center; gap: 28px; font-size: 13px; font-weight: 650; }
